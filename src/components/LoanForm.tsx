@@ -8,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -157,15 +156,7 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
   };
 
   return (
-    <Card className="border-2">
-      <CardHeader className="bg-primary/5">
-        <CardTitle className="flex items-center gap-2 text-primary">
-          <UserPlus className="h-5 w-5" />
-          Novo Empréstimo
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-6">
-        <Form {...form}>
+    <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <FormField
@@ -327,7 +318,5 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
             </Button>
           </form>
         </Form>
-      </CardContent>
-    </Card>
   );
 }
