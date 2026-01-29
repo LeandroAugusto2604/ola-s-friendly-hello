@@ -253,7 +253,7 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
                 control={form.control}
                 name="phone"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="sm:col-span-2">
                     <FormLabel>Celular</FormLabel>
                     <FormControl>
                       <Input
