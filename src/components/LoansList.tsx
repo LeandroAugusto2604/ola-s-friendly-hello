@@ -146,7 +146,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
     }
   };
 
-  const handleDeleteLoan = async (loanId: string) => {
+  const handleDeleteLoan = async (loanId: string, clientId: string, totalLoans: number) => {
     const { error } = await supabase
       .from("loans")
       .delete()
@@ -159,9 +159,40 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
         variant: "destructive",
       });
     } else {
+      // If this was the last loan, also delete the client
+      if (totalLoans === 1) {
+        await supabase.from("clients").delete().eq("id", clientId);
+        toast({
+          title: "Cliente removido!",
+          description: "O cliente e seu empréstimo foram excluídos",
+        });
+      } else {
+        toast({
+          title: "Empréstimo removido!",
+          description: "O empréstimo e suas parcelas foram excluídos. O cliente ainda possui outros empréstimos.",
+        });
+      }
+      refetch();
+      onDataChange?.();
+    }
+  };
+
+  const handleDeleteClient = async (clientId: string) => {
+    const { error } = await supabase
+      .from("clients")
+      .delete()
+      .eq("id", clientId);
+
+    if (error) {
       toast({
-        title: "Empréstimo removido!",
-        description: "O empréstimo e suas parcelas foram excluídos",
+        title: "Erro",
+        description: "Não foi possível remover o cliente",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Cliente removido!",
+        description: "O cliente e todos os seus empréstimos foram excluídos",
       });
       refetch();
       onDataChange?.();
@@ -316,13 +347,45 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="space-y-4 pt-4">
-                      <div className="grid gap-2 text-sm">
-                        <p>
-                          <strong>RG:</strong> {client.rg}
-                        </p>
-                        <p>
-                          <strong>Endereço:</strong> {client.address}
-                        </p>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="grid gap-2 text-sm">
+                          <p>
+                            <strong>RG:</strong> {client.rg}
+                          </p>
+                          <p>
+                            <strong>Endereço:</strong> {client.address}
+                          </p>
+                        </div>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Excluir Cliente
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Excluir cliente?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta ação não pode ser desfeita. O cliente{" "}
+                                <strong>{client.full_name}</strong> e todos os seus{" "}
+                                <strong>{client.loans.length} empréstimo(s)</strong> serão
+                                removidos permanentemente.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteClient(client.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Excluir Cliente
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
 
                       {client.loans.length === 0 ? (
@@ -405,12 +468,17 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                           de {formatCurrency(Number(loan.amount))} e
                                           todas as suas parcelas serão removidos
                                           permanentemente.
+                                          {client.loans.length === 1 && (
+                                            <span className="block mt-2 font-medium">
+                                              ⚠️ Como este é o único empréstimo do cliente, o cliente também será removido.
+                                            </span>
+                                          )}
                                         </AlertDialogDescription>
                                       </AlertDialogHeader>
                                       <AlertDialogFooter>
                                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
                                         <AlertDialogAction
-                                          onClick={() => handleDeleteLoan(loan.id)}
+                                          onClick={() => handleDeleteLoan(loan.id, client.id, client.loans.length)}
                                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                         >
                                           Remover
