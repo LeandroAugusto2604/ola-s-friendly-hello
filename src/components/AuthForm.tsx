@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Banknote, LogIn, UserPlus } from "lucide-react";
+import { Loader2, LogIn, UserPlus } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -77,11 +77,16 @@ export function AuthForm() {
   const handleSignup = async (data: SignupFormData) => {
     setIsLoading(true);
     try {
+      // Use production URL for email redirect to avoid localhost issues
+      const redirectUrl = window.location.hostname === 'localhost' 
+        ? 'https://emprestimo-zl.lovable.app'
+        : window.location.origin;
+        
       const { error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: redirectUrl,
           data: {
             full_name: data.fullName,
           },
@@ -109,17 +114,11 @@ export function AuthForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md animate-fade-in">
-        {/* Logo/Brand Section */}
+        {/* Title Section */}
         <div className="text-center mb-8">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary shadow-soft mb-4">
-            <Banknote className="h-8 w-8 text-white" />
-          </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            LoanManager
+            Sistema de Gestão de Empréstimos
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Sistema de gestão de empréstimos
-          </p>
         </div>
 
         <Card className="border-0 shadow-card">
