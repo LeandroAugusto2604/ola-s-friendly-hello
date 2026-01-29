@@ -194,8 +194,9 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
         `Olá ${clientName}! Para confirmar seu empréstimo, acesse o link abaixo e tire uma foto segurando seu RG:\n\n${verificationLink}`
       );
 
-      // Open WhatsApp
-      window.open(`https://wa.me/${whatsappPhone}?text=${message}`, "_blank");
+      // Open WhatsApp - using location.href for better mobile compatibility
+      const whatsappUrl = `https://wa.me/${whatsappPhone}?text=${message}`;
+      window.location.href = whatsappUrl;
 
       toast({
         title: "Link gerado!",
@@ -241,7 +242,8 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
       `Olá ${clientName}! Para confirmar seu empréstimo, acesse o link abaixo e tire uma foto segurando seu RG:\n\n${verificationLink}`
     );
 
-    window.open(`https://wa.me/${whatsappPhone}?text=${message}`, "_blank");
+    const whatsappUrl = `https://wa.me/${whatsappPhone}?text=${message}`;
+    window.location.href = whatsappUrl;
 
     toast({
       title: "WhatsApp aberto!",
@@ -663,9 +665,9 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
 
                               {/* Identity Verification Section */}
                               <div className="border border-border/50 rounded-lg p-4 bg-background">
-                                <div className="flex items-center justify-between gap-3 flex-wrap">
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-sm font-medium">Verificação de Identidade:</span>
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm font-medium">Verificação:</span>
                                     {!loan.identity_verification ? (
                                       <Badge variant="outline" className="border-muted-foreground/30">
                                         Não solicitada
@@ -678,17 +680,17 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                     ) : (
                                       <Badge className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-0">
                                         <Clock className="mr-1 h-3 w-3" />
-                                        Aguardando foto
+                                        Aguardando
                                       </Badge>
                                     )}
                                   </div>
                                   
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
                                     {!loan.identity_verification ? (
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        className="text-emerald-600 border-emerald-600/30 hover:bg-emerald-500/10"
+                                        className="text-emerald-600 border-emerald-600/30 hover:bg-emerald-500/10 w-full sm:w-auto"
                                         onClick={() => handleSendVerification(loan.id, client.phone, client.full_name)}
                                         disabled={sendingVerification === loan.id}
                                       >
@@ -697,21 +699,23 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                         ) : (
                                           <MessageCircle className="h-4 w-4 mr-1" />
                                         )}
-                                        Solicitar via WhatsApp
+                                        Enviar WhatsApp
                                       </Button>
                                     ) : loan.identity_verification.status === "pending" ? (
                                       <>
                                         <Button
                                           size="sm"
                                           variant="ghost"
+                                          className="flex-1 sm:flex-none"
                                           onClick={() => copyVerificationLink(loan.identity_verification!.token)}
                                         >
                                           <Copy className="h-4 w-4 mr-1" />
-                                          Copiar link
+                                          Copiar
                                         </Button>
                                         <Button
                                           size="sm"
                                           variant="outline"
+                                          className="flex-1 sm:flex-none"
                                           onClick={() => resendVerification(
                                             loan.id,
                                             loan.identity_verification!.token,
@@ -726,7 +730,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                     ) : loan.identity_verification.photo_url ? (
                                       <Dialog>
                                         <DialogTrigger asChild>
-                                          <Button size="sm" variant="outline">
+                                          <Button size="sm" variant="outline" className="w-full sm:w-auto">
                                             <Eye className="h-4 w-4 mr-1" />
                                             Ver foto
                                           </Button>
