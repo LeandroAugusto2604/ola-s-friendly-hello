@@ -66,6 +66,7 @@ interface Client {
   cpf: string;
   rg: string;
   address: string;
+  phone: string | null;
   loans: Loan[];
 }
 
@@ -355,6 +356,12 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                           <p>
                             <strong>Endereço:</strong> {client.address}
                           </p>
+                          {client.phone && (
+                            <p>
+                              <strong>Celular:</strong>{" "}
+                              {client.phone.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}
+                            </p>
+                          )}
                         </div>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>

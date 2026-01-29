@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { LoanForm } from "@/components/LoanForm";
 import { LoansList } from "@/components/LoansList";
 import { DashboardStats } from "@/components/DashboardStats";
+import { OverdueAlert } from "@/components/OverdueAlert";
 import { AuthForm } from "@/components/AuthForm";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
@@ -89,6 +90,9 @@ function DashboardContent() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-8">
+          {/* Overdue Alert */}
+          <OverdueAlert refreshKey={refreshKey} />
+
           {/* Stats */}
           <DashboardStats refreshKey={refreshKey} />
 

@@ -32,6 +32,7 @@ const formSchema = z.object({
   address: z.string().min(5, "Endereço deve ter pelo menos 5 caracteres"),
   rg: z.string().min(5, "RG inválido"),
   cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$|^\d{11}$/, "CPF inválido"),
+  phone: z.string().min(10, "Celular inválido").max(15, "Celular inválido"),
   amount: z.string().refine((val) => parseFloat(val) > 0, "Valor deve ser maior que 0"),
   installmentsCount: z.string().refine((val) => parseInt(val) >= 1 && parseInt(val) <= 48, "Parcelas deve ser entre 1 e 48"),
   firstDueDate: z.date({
@@ -56,6 +57,7 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
       address: "",
       rg: "",
       cpf: "",
+      phone: "",
       amount: "",
       installmentsCount: "12",
       firstDueDate: undefined,
@@ -69,6 +71,14 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
       .replace(/(\d{3})(\d)/, "$1.$2")
       .replace(/(\d{3})(\d{1,2})/, "$1-$2")
       .replace(/(-\d{2})\d+?$/, "$1");
+  };
+
+  const formatPhone = (value: string) => {
+    const numbers = value.replace(/\D/g, "");
+    return numbers
+      .replace(/(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{5})(\d)/, "$1-$2")
+      .replace(/(-\d{4})\d+?$/, "$1");
   };
 
   const onSubmit = async (data: FormData) => {
@@ -107,6 +117,7 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
             address: data.address,
             rg: data.rg,
             cpf: cpfClean,
+            phone: data.phone.replace(/\D/g, ""),
             user_id: user.id,
           })
           .select()
@@ -231,6 +242,25 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
                         {...field}
                         onChange={(e) => field.onChange(formatCPF(e.target.value))}
                         maxLength={14}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Celular</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="(00) 00000-0000"
+                        {...field}
+                        onChange={(e) => field.onChange(formatPhone(e.target.value))}
+                        maxLength={15}
                       />
                     </FormControl>
                     <FormMessage />
