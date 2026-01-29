@@ -34,6 +34,7 @@ const formSchema = z.object({
   cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$|^\d{11}$/, "CPF inválido"),
   phone: z.string().min(10, "Celular inválido").max(15, "Celular inválido"),
   amount: z.string().refine((val) => parseFloat(val) > 0, "Valor deve ser maior que 0"),
+  interestRate: z.string().refine((val) => parseFloat(val) >= 0 && parseFloat(val) <= 100, "Juros deve ser entre 0% e 100%"),
   installmentsCount: z.string().refine((val) => parseInt(val) >= 1 && parseInt(val) <= 48, "Parcelas deve ser entre 1 e 48"),
   firstDueDate: z.date({
     required_error: "Selecione a data do primeiro vencimento",
@@ -59,6 +60,7 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
       cpf: "",
       phone: "",
       amount: "",
+      interestRate: "0",
       installmentsCount: "12",
       firstDueDate: undefined,
     },
@@ -127,15 +129,19 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
         clientId = newClient.id;
       }
 
-      // 2. Create loan
+      // 2. Create loan with interest
       const amount = parseFloat(data.amount);
+      const interestRate = parseFloat(data.interestRate);
       const installmentsCount = parseInt(data.installmentsCount);
+      
+      // Calculate total amount with interest
+      const totalWithInterest = amount * (1 + interestRate / 100);
 
       const { data: loan, error: loanError } = await supabase
         .from("loans")
         .insert({
           client_id: clientId,
-          amount,
+          amount: totalWithInterest,
           installments_count: installmentsCount,
         })
         .select()
@@ -143,8 +149,8 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
 
       if (loanError) throw loanError;
 
-      // 3. Generate installments with manual first due date
-      const installmentAmount = amount / installmentsCount;
+      // 3. Generate installments with interest already included
+      const installmentAmount = totalWithInterest / installmentsCount;
       const firstDueDate = data.firstDueDate;
       
       const installments = Array.from({ length: installmentsCount }, (_, i) => {
@@ -165,9 +171,10 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
 
       if (installmentsError) throw installmentsError;
 
+      const interestAmount = totalWithInterest - amount;
       toast({
         title: "Sucesso!",
-        description: `Empréstimo cadastrado com ${installmentsCount} parcelas de R$ ${installmentAmount.toFixed(2)}`,
+        description: `Empréstimo de R$ ${amount.toFixed(2)} + R$ ${interestAmount.toFixed(2)} de juros (${interestRate}%) = R$ ${totalWithInterest.toFixed(2)} em ${installmentsCount}x de R$ ${installmentAmount.toFixed(2)}`,
       });
 
       form.reset();
@@ -280,6 +287,27 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
                         step="0.01"
                         min="0"
                         placeholder="1000.00"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="interestRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Taxa de Juros (%)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="100"
+                        placeholder="10"
                         {...field}
                       />
                     </FormControl>
