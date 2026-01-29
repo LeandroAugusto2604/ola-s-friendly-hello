@@ -2,10 +2,19 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Form,
   FormControl,
@@ -13,9 +22,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, UserPlus } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { CalendarIcon, Loader2, UserPlus } from "lucide-react";
 
 const formSchema = z.object({
   fullName: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
@@ -24,6 +35,9 @@ const formSchema = z.object({
   cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$|^\d{11}$/, "CPF inválido"),
   amount: z.string().refine((val) => parseFloat(val) > 0, "Valor deve ser maior que 0"),
   installmentsCount: z.string().refine((val) => parseInt(val) >= 1 && parseInt(val) <= 48, "Parcelas deve ser entre 1 e 48"),
+  firstDueDate: z.date({
+    required_error: "Selecione a data do primeiro vencimento",
+  }),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -34,6 +48,7 @@ interface LoanFormProps {
 
 export function LoanForm({ onSuccess }: LoanFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -44,6 +59,7 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
       cpf: "",
       amount: "",
       installmentsCount: "12",
+      firstDueDate: undefined,
     },
   });
 
@@ -57,9 +73,18 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
   };
 
   const onSubmit = async (data: FormData) => {
+    if (!user) {
+      toast({
+        title: "Erro",
+        description: "Você precisa estar logado para cadastrar",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // 1. Create client
+      // 1. Create client with user_id
       const { data: client, error: clientError } = await supabase
         .from("clients")
         .insert({
@@ -67,6 +92,7 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
           address: data.address,
           rg: data.rg,
           cpf: data.cpf.replace(/\D/g, ""),
+          user_id: user.id,
         })
         .select()
         .single();
@@ -89,13 +115,13 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
 
       if (loanError) throw loanError;
 
-      // 3. Generate installments
+      // 3. Generate installments with manual first due date
       const installmentAmount = amount / installmentsCount;
-      const today = new Date();
+      const firstDueDate = data.firstDueDate;
       
       const installments = Array.from({ length: installmentsCount }, (_, i) => {
-        const dueDate = new Date(today);
-        dueDate.setMonth(dueDate.getMonth() + i + 1);
+        const dueDate = new Date(firstDueDate);
+        dueDate.setMonth(dueDate.getMonth() + i);
         
         return {
           loan_id: loan.id,
@@ -238,6 +264,51 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
                         {...field}
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="firstDueDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Data do Primeiro Vencimento</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "dd/MM/yyyy", { locale: ptBR })
+                            ) : (
+                              <span>Selecione a data</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) => date < new Date()}
+                          initialFocus
+                          locale={ptBR}
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormDescription>
+                      As demais parcelas terão vencimento mensal a partir desta data
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
