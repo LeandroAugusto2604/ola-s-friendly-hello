@@ -83,20 +83,38 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
 
     setIsLoading(true);
     try {
-      // 1. Create client with user_id
-      const { data: client, error: clientError } = await supabase
+      const cpfClean = data.cpf.replace(/\D/g, "");
+      
+      // 1. Check if client already exists with this CPF
+      const { data: existingClient } = await supabase
         .from("clients")
-        .insert({
-          full_name: data.fullName,
-          address: data.address,
-          rg: data.rg,
-          cpf: data.cpf.replace(/\D/g, ""),
-          user_id: user.id,
-        })
-        .select()
-        .single();
+        .select("*")
+        .eq("cpf", cpfClean)
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-      if (clientError) throw clientError;
+      let clientId: string;
+
+      if (existingClient) {
+        // Use existing client
+        clientId = existingClient.id;
+      } else {
+        // Create new client
+        const { data: newClient, error: clientError } = await supabase
+          .from("clients")
+          .insert({
+            full_name: data.fullName,
+            address: data.address,
+            rg: data.rg,
+            cpf: cpfClean,
+            user_id: user.id,
+          })
+          .select()
+          .single();
+
+        if (clientError) throw clientError;
+        clientId = newClient.id;
+      }
 
       // 2. Create loan
       const amount = parseFloat(data.amount);
@@ -105,7 +123,7 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
       const { data: loan, error: loanError } = await supabase
         .from("loans")
         .insert({
-          client_id: client.id,
+          client_id: clientId,
           amount,
           installments_count: installmentsCount,
         })
