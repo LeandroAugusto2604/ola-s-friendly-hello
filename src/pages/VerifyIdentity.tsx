@@ -8,6 +8,8 @@ import { Camera, Upload, CheckCircle2, AlertCircle, Loader2 } from "lucide-react
 
 type VerificationStatus = "loading" | "pending" | "completed" | "expired" | "not_found";
 
+const SUPABASE_URL = "https://bpafoiivtwmcqgjvsgjs.supabase.co";
+
 export default function VerifyIdentity() {
   const { token } = useParams<{ token: string }>();
   const [status, setStatus] = useState<VerificationStatus>("loading");
@@ -32,34 +34,54 @@ export default function VerifyIdentity() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from("identity_verifications")
-      .select("status")
-      .eq("token", token)
-      .single();
+    try {
+      // Use edge function for secure verification check
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/verify-identity?token=${encodeURIComponent(token)}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-    if (error || !data) {
+      if (response.status === 404) {
+        setStatus("not_found");
+        return;
+      }
+
+      if (response.status === 410) {
+        setStatus("expired");
+        return;
+      }
+
+      if (!response.ok) {
+        setStatus("not_found");
+        return;
+      }
+
+      const data = await response.json();
+      
+      if (data.status === "completed") {
+        setStatus("completed");
+      } else if (data.valid) {
+        setStatus("pending");
+      } else {
+        setStatus("not_found");
+      }
+    } catch (error) {
+      console.error("Error checking verification:", error);
       setStatus("not_found");
-      return;
-    }
-
-    if (data.status === "completed") {
-      setStatus("completed");
-    } else if (data.status === "expired") {
-      setStatus("expired");
-    } else {
-      setStatus("pending");
     }
   };
 
   const startCamera = async () => {
     try {
-      // CRITICAL: getUserMedia called directly in click handler
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
       });
       streamRef.current = stream;
-      // First activate camera UI, then attach stream after render
       setIsCameraActive(true);
     } catch (error) {
       console.error("Camera error:", error);
@@ -71,7 +93,6 @@ export default function VerifyIdentity() {
     }
   };
 
-  // Attach stream to video element after it renders
   useEffect(() => {
     if (isCameraActive && streamRef.current && videoRef.current) {
       videoRef.current.srcObject = streamRef.current;
@@ -132,7 +153,7 @@ export default function VerifyIdentity() {
       // Generate unique filename
       const filename = `${token}_${Date.now()}.jpg`;
 
-      // Upload to Supabase Storage
+      // Upload to Supabase Storage (public bucket allows anonymous uploads)
       const { error: uploadError } = await supabase.storage
         .from("identity-photos")
         .upload(filename, blob, { contentType: "image/jpeg" });
@@ -144,17 +165,24 @@ export default function VerifyIdentity() {
         .from("identity-photos")
         .getPublicUrl(filename);
 
-      // Update verification record
-      const { error: updateError } = await supabase
-        .from("identity_verifications")
-        .update({
-          status: "completed",
-          photo_url: urlData.publicUrl,
-          verified_at: new Date().toISOString(),
-        })
-        .eq("token", token);
+      // Use edge function to securely update verification record
+      const updateResponse = await fetch(
+        `${SUPABASE_URL}/functions/v1/verify-identity?token=${encodeURIComponent(token)}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            photo_url: urlData.publicUrl,
+          }),
+        }
+      );
 
-      if (updateError) throw updateError;
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.json();
+        throw new Error(errorData.error || "Failed to update verification");
+      }
 
       setStatus("completed");
       toast({
