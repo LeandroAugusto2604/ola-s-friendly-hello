@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { AlertTriangle, Phone } from "lucide-react";
 
 interface OverdueAlertProps {
   refreshKey: number;
@@ -76,42 +76,57 @@ export function OverdueAlert({ refreshKey }: OverdueAlertProps) {
   const clientList = Object.values(clientsWithOverdue);
 
   return (
-    <Alert variant="destructive" className="border-2">
-      <AlertTriangle className="h-5 w-5" />
-      <AlertTitle className="text-lg font-semibold">
-        ⚠️ {overdueData.length} Parcela(s) em Atraso
-      </AlertTitle>
-      <AlertDescription className="mt-2">
-        <p className="font-medium mb-3">
-          Total em atraso: {formatCurrency(totalOverdue)}
-        </p>
-        <div className="space-y-2">
-          {clientList.slice(0, 5).map((client, index) => (
-            <div
-              key={index}
-              className="flex items-center justify-between bg-destructive/10 rounded px-3 py-2 text-sm"
-            >
-              <div>
-                <span className="font-medium">{client.name}</span>
-                {client.phone && (
-                  <span className="text-muted-foreground ml-2">
-                    ({client.phone.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")})
-                  </span>
-                )}
-              </div>
-              <div className="text-right">
-                <span className="font-medium">{client.count} parcela(s)</span>
-                <span className="ml-2">{formatCurrency(client.total)}</span>
-              </div>
+    <Card className="border-0 shadow-card bg-gradient-to-r from-rose-50 to-orange-50 dark:from-rose-950/30 dark:to-orange-950/30">
+      <CardContent className="p-6">
+        <div className="flex items-start gap-4">
+          <div className="rounded-xl bg-destructive/10 p-3">
+            <AlertTriangle className="h-6 w-6 text-destructive" />
+          </div>
+          <div className="flex-1 space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold text-destructive">
+                {overdueData.length} Parcela(s) em Atraso
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Total pendente: <span className="font-semibold text-foreground">{formatCurrency(totalOverdue)}</span>
+              </p>
             </div>
-          ))}
-          {clientList.length > 5 && (
-            <p className="text-sm text-muted-foreground">
-              ... e mais {clientList.length - 5} cliente(s)
-            </p>
-          )}
+            
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {clientList.slice(0, 6).map((client, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between gap-3 bg-card rounded-lg px-4 py-3 shadow-sm border border-border/50"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm truncate">{client.name}</p>
+                    {client.phone && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                        <Phone className="h-3 w-3" />
+                        <span>{client.phone.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-semibold text-destructive">
+                      {formatCurrency(client.total)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {client.count}x
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {clientList.length > 6 && (
+              <p className="text-sm text-muted-foreground">
+                ... e mais {clientList.length - 6} cliente(s) em atraso
+              </p>
+            )}
+          </div>
         </div>
-      </AlertDescription>
-    </Alert>
+      </CardContent>
+    </Card>
   );
 }

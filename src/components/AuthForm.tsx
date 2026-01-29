@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, CreditCard, LogIn, UserPlus } from "lucide-react";
+import { Loader2, Banknote, LogIn, UserPlus } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -108,171 +108,202 @@ export function AuthForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary">
-              <CreditCard className="h-8 w-8 text-primary-foreground" />
-            </div>
+      <div className="w-full max-w-md animate-fade-in">
+        {/* Logo/Brand Section */}
+        <div className="text-center mb-8">
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary shadow-soft mb-4">
+            <Banknote className="h-8 w-8 text-white" />
           </div>
-          <CardTitle className="text-2xl">Sistema de Empréstimos</CardTitle>
-          <CardDescription>
-            Faça login ou crie sua conta para continuar
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="login" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login" className="gap-2">
-                <LogIn className="h-4 w-4" />
-                Login
-              </TabsTrigger>
-              <TabsTrigger value="signup" className="gap-2">
-                <UserPlus className="h-4 w-4" />
-                Cadastro
-              </TabsTrigger>
-            </TabsList>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            LoanManager
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Sistema de gestão de empréstimos
+          </p>
+        </div>
 
-            <TabsContent value="login">
-              <Form {...loginForm}>
-                <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
-                  <FormField
-                    control={loginForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="seu@email.com"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+        <Card className="border-0 shadow-card">
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-xl">Bem-vindo</CardTitle>
+            <CardDescription>
+              Faça login ou crie sua conta para continuar
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="login" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-2 h-12">
+                <TabsTrigger value="login" className="gap-2 text-sm">
+                  <LogIn className="h-4 w-4" />
+                  Login
+                </TabsTrigger>
+                <TabsTrigger value="signup" className="gap-2 text-sm">
+                  <UserPlus className="h-4 w-4" />
+                  Cadastro
+                </TabsTrigger>
+              </TabsList>
 
-                  <FormField
-                    control={loginForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Senha</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="••••••"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <TabsContent value="login">
+                <Form {...loginForm}>
+                  <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
+                    <FormField
+                      control={loginForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="email"
+                              placeholder="seu@email.com"
+                              className="h-11"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Entrando...
-                      </>
-                    ) : (
-                      "Entrar"
-                    )}
-                  </Button>
-                </form>
-              </Form>
-            </TabsContent>
+                    <FormField
+                      control={loginForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Senha</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="password"
+                              placeholder="••••••"
+                              className="h-11"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-            <TabsContent value="signup">
-              <Form {...signupForm}>
-                <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-4">
-                  <FormField
-                    control={signupForm.control}
-                    name="fullName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome Completo</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Seu nome" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <Button 
+                      type="submit" 
+                      className="w-full h-11 gradient-primary border-0 shadow-soft hover:opacity-90 transition-smooth" 
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Entrando...
+                        </>
+                      ) : (
+                        "Entrar"
+                      )}
+                    </Button>
+                  </form>
+                </Form>
+              </TabsContent>
 
-                  <FormField
-                    control={signupForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="seu@email.com"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <TabsContent value="signup">
+                <Form {...signupForm}>
+                  <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-4">
+                    <FormField
+                      control={signupForm.control}
+                      name="fullName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome Completo</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Seu nome" 
+                              className="h-11" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                  <FormField
-                    control={signupForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Senha</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="••••••"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormField
+                      control={signupForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="email"
+                              placeholder="seu@email.com"
+                              className="h-11"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                  <FormField
-                    control={signupForm.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirmar Senha</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="••••••"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormField
+                      control={signupForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Senha</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="password"
+                              placeholder="••••••"
+                              className="h-11"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Criando conta...
-                      </>
-                    ) : (
-                      "Criar Conta"
-                    )}
-                  </Button>
-                </form>
-              </Form>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+                    <FormField
+                      control={signupForm.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirmar Senha</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="password"
+                              placeholder="••••••"
+                              className="h-11"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <Button 
+                      type="submit" 
+                      className="w-full h-11 gradient-primary border-0 shadow-soft hover:opacity-90 transition-smooth" 
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Criando conta...
+                        </>
+                      ) : (
+                        "Criar Conta"
+                      )}
+                    </Button>
+                  </form>
+                </Form>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          Sistema seguro com criptografia de ponta a ponta
+        </p>
+      </div>
     </div>
   );
 }

@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, DollarSign, CreditCard, AlertTriangle } from "lucide-react";
+import { Users, TrendingUp, Wallet, AlertCircle } from "lucide-react";
 
 interface DashboardStatsProps {
   refreshKey: number;
@@ -52,14 +52,11 @@ export function DashboardStats({ refreshKey }: DashboardStatsProps) {
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
-          <Card key={i}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-4" />
-            </CardHeader>
-            <CardContent>
+          <Card key={i} className="overflow-hidden">
+            <CardContent className="p-6">
+              <Skeleton className="h-4 w-24 mb-3" />
               <Skeleton className="h-8 w-32" />
             </CardContent>
           </Card>
@@ -73,46 +70,60 @@ export function DashboardStats({ refreshKey }: DashboardStatsProps) {
       title: "Total de Clientes",
       value: stats?.totalClients || 0,
       icon: Users,
-      color: "text-blue-600",
-      bgColor: "bg-blue-100",
+      gradient: "from-blue-500 to-blue-600",
+      iconBg: "bg-blue-500/10",
+      iconColor: "text-blue-600",
     },
     {
       title: "Total Emprestado",
       value: formatCurrency(stats?.totalLoans || 0),
-      icon: DollarSign,
-      color: "text-green-600",
-      bgColor: "bg-green-100",
+      icon: TrendingUp,
+      gradient: "from-emerald-500 to-emerald-600",
+      iconBg: "bg-emerald-500/10",
+      iconColor: "text-emerald-600",
     },
     {
       title: "Total Recebido",
       value: formatCurrency(stats?.totalPaid || 0),
-      icon: CreditCard,
-      color: "text-purple-600",
-      bgColor: "bg-purple-100",
+      icon: Wallet,
+      gradient: "from-violet-500 to-violet-600",
+      iconBg: "bg-violet-500/10",
+      iconColor: "text-violet-600",
     },
     {
       title: "Parcelas Vencidas",
       value: stats?.overdueCount || 0,
-      icon: AlertTriangle,
-      color: "text-red-600",
-      bgColor: "bg-red-100",
+      icon: AlertCircle,
+      gradient: "from-rose-500 to-rose-600",
+      iconBg: "bg-rose-500/10",
+      iconColor: "text-rose-600",
+      highlight: (stats?.overdueCount || 0) > 0,
     },
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {statCards.map((stat) => (
-        <Card key={stat.title} className="overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              {stat.title}
-            </CardTitle>
-            <div className={`rounded-full p-2 ${stat.bgColor}`}>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
+        <Card 
+          key={stat.title} 
+          className={`overflow-hidden shadow-card hover:shadow-hover transition-smooth border-0 ${
+            stat.highlight ? "ring-2 ring-destructive/20" : ""
+          }`}
+        >
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">
+                  {stat.title}
+                </p>
+                <p className={`text-2xl font-bold tracking-tight ${stat.highlight ? "text-destructive" : "text-foreground"}`}>
+                  {stat.value}
+                </p>
+              </div>
+              <div className={`rounded-xl p-3 ${stat.iconBg}`}>
+                <stat.icon className={`h-5 w-5 ${stat.iconColor}`} />
+              </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stat.value}</div>
           </CardContent>
         </Card>
       ))}
