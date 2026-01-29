@@ -92,7 +92,7 @@ export function OverdueAlert({ refreshKey }: OverdueAlertProps) {
               </p>
             </div>
             
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {clientList.slice(0, 6).map((client, index) => (
                 <div
                   key={index}

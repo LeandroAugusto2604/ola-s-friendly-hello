@@ -520,16 +520,18 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                 </div>
                               )}
 
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead>Parcela</TableHead>
-                                    <TableHead>Valor</TableHead>
-                                    <TableHead>Vencimento</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Ação</TableHead>
-                                  </TableRow>
-                                </TableHeader>
+                              {/* Mobile-friendly table wrapper */}
+                              <div className="overflow-x-auto -mx-2 sm:mx-0">
+                                <Table className="min-w-[500px]">
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="w-20">Parcela</TableHead>
+                                      <TableHead>Valor</TableHead>
+                                      <TableHead>Vencimento</TableHead>
+                                      <TableHead>Status</TableHead>
+                                      <TableHead className="text-right">Ação</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
                                 <TableBody>
                                   {loan.installments.map((installment) => {
                                     const isOverdue =
@@ -588,6 +590,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                   })}
                                 </TableBody>
                               </Table>
+                              </div>
                             </div>
                           );
                         })

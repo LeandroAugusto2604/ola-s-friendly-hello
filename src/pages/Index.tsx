@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Banknote, LogOut, Plus, Radio } from "lucide-react";
+import { Banknote, LogOut, Plus, Radio, X } from "lucide-react";
 
 function DashboardContent() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -122,11 +122,25 @@ function DashboardContent() {
                   <span className="sm:hidden">Novo</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto shadow-hover">
-                <DialogHeader>
+              <DialogContent 
+                className="max-w-2xl max-h-[90vh] overflow-y-auto shadow-hover"
+                onPointerDownOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
+              >
+                <DialogHeader className="flex flex-row items-center justify-between">
                   <DialogTitle className="text-xl">Cadastrar Novo Empréstimo</DialogTitle>
                 </DialogHeader>
                 <LoanForm onSuccess={handleLoanSuccess} />
+                <div className="flex justify-end pt-4 border-t">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsDialogOpen(false)}
+                    className="gap-2"
+                  >
+                    <X className="h-4 w-4" />
+                    Cancelar
+                  </Button>
+                </div>
               </DialogContent>
             </Dialog>
           </div>

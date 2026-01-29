@@ -187,7 +187,7 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
   return (
     <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="fullName"
@@ -354,10 +354,14 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              className="w-full h-12 gradient-primary border-0 shadow-soft hover:opacity-90 transition-smooth text-base" 
+              disabled={isLoading}
+            >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Cadastrando...
                 </>
               ) : (
