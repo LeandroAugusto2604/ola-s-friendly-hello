@@ -2,13 +2,18 @@ import { useState, useCallback } from "react";
 import { LoanForm } from "@/components/LoanForm";
 import { LoansList } from "@/components/LoansList";
 import { DashboardStats } from "@/components/DashboardStats";
+import { AuthForm } from "@/components/AuthForm";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, LayoutDashboard, UserPlus, Wifi } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CreditCard, LayoutDashboard, LogOut, UserPlus, Wifi } from "lucide-react";
 
-const Index = () => {
+function DashboardContent() {
   const [refreshKey, setRefreshKey] = useState(0);
+  const { user, signOut, loading } = useAuth();
 
   const handleDataChange = useCallback(() => {
     setRefreshKey((prev) => prev + 1);
@@ -19,6 +24,22 @@ const Index = () => {
     tables: ["clients", "loans", "installments"],
     onDataChange: handleDataChange,
   });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="space-y-4 w-full max-w-md p-8">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-8 w-3/4" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthForm />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -35,14 +56,20 @@ const Index = () => {
                   Sistema de Empréstimos
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Gestão profissional de empréstimos e parcelas
+                  {user.email}
                 </p>
               </div>
             </div>
-            <Badge variant="outline" className="gap-1.5">
-              <Wifi className="h-3 w-3 text-green-500" />
-              Tempo real
-            </Badge>
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="gap-1.5 hidden sm:flex">
+                <Wifi className="h-3 w-3 text-green-500" />
+                Tempo real
+              </Badge>
+              <Button variant="outline" size="sm" onClick={signOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -77,6 +104,14 @@ const Index = () => {
         </div>
       </main>
     </div>
+  );
+}
+
+const Index = () => {
+  return (
+    <AuthProvider>
+      <DashboardContent />
+    </AuthProvider>
   );
 };
 
