@@ -5,19 +5,31 @@ import { DashboardStats } from "@/components/DashboardStats";
 import { AuthForm } from "@/components/AuthForm";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CreditCard, LayoutDashboard, LogOut, UserPlus, Wifi } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { CreditCard, LogOut, Plus, Wifi } from "lucide-react";
 
 function DashboardContent() {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { user, signOut, loading } = useAuth();
 
   const handleDataChange = useCallback(() => {
     setRefreshKey((prev) => prev + 1);
   }, []);
+
+  const handleLoanSuccess = () => {
+    handleDataChange();
+    setIsDialogOpen(false);
+  };
 
   // Subscribe to real-time updates from all tables
   useRealtimeSubscription({
@@ -44,7 +56,7 @@ function DashboardContent() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card shadow-sm">
+      <header className="border-b bg-card shadow-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -80,27 +92,26 @@ function DashboardContent() {
           {/* Stats */}
           <DashboardStats refreshKey={refreshKey} />
 
-          {/* Tabs */}
-          <Tabs defaultValue="new" className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
-              <TabsTrigger value="new" className="gap-2">
-                <UserPlus className="h-4 w-4" />
-                Novo Cadastro
-              </TabsTrigger>
-              <TabsTrigger value="list" className="gap-2">
-                <LayoutDashboard className="h-4 w-4" />
-                Ver Empréstimos
-              </TabsTrigger>
-            </TabsList>
+          {/* Add Loan Button */}
+          <div className="flex justify-end">
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="lg" className="gap-2">
+                  <Plus className="h-5 w-5" />
+                  Novo Empréstimo
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Cadastrar Novo Empréstimo</DialogTitle>
+                </DialogHeader>
+                <LoanForm onSuccess={handleLoanSuccess} />
+              </DialogContent>
+            </Dialog>
+          </div>
 
-            <TabsContent value="new">
-              <LoanForm onSuccess={handleDataChange} />
-            </TabsContent>
-
-            <TabsContent value="list">
-              <LoansList refreshKey={refreshKey} onDataChange={handleDataChange} />
-            </TabsContent>
-          </Tabs>
+          {/* Loans List */}
+          <LoansList refreshKey={refreshKey} onDataChange={handleDataChange} />
         </div>
       </main>
     </div>
