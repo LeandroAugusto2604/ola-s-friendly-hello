@@ -342,6 +342,9 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                         <p className="text-sm text-muted-foreground">
                           CPF: {formatCPF(client.cpf)} • {client.loans.length}{" "}
                           empréstimo(s)
+                          {client.phone && (
+                            <> • Tel: {client.phone.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}</>
+                          )}
                         </p>
                       </div>
                     </div>
