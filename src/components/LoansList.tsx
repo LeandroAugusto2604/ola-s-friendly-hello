@@ -250,13 +250,13 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="border-0 shadow-card">
         <CardHeader>
           <CardTitle>Clientes e Empréstimos</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-24 w-full" />
+            <Skeleton key={i} className="h-24 w-full rounded-xl" />
           ))}
         </CardContent>
       </Card>
@@ -264,30 +264,32 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
+    <Card className="border-0 shadow-card">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-2 text-xl">
+          <div className="rounded-lg bg-primary/10 p-2">
+            <FileText className="h-5 w-5 text-primary" />
+          </div>
           Clientes e Empréstimos
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Search and Filters */}
-        <div className="flex flex-col gap-4 sm:flex-row">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar por nome ou CPF..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 h-11"
             />
           </div>
           <Select
             value={statusFilter}
             onValueChange={(value: StatusFilter) => setStatusFilter(value)}
           >
-            <SelectTrigger className="w-full sm:w-48">
+            <SelectTrigger className="w-full sm:w-48 h-11">
               <SelectValue placeholder="Filtrar por status" />
             </SelectTrigger>
             <SelectContent>
@@ -311,7 +313,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
               : "Nenhum cliente cadastrado ainda."}
           </p>
         ) : (
-          <Accordion type="multiple" className="space-y-4">
+          <Accordion type="multiple" className="space-y-3">
             {filteredClients.map((client) => {
               const clientStatus = getClientStatus(client);
               
@@ -319,27 +321,27 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                 <AccordionItem
                   key={client.id}
                   value={client.id}
-                  className="border rounded-lg px-4"
+                  className="border border-border/50 rounded-xl px-4 bg-card shadow-sm hover:shadow-card transition-smooth"
                 >
-                  <AccordionTrigger className="hover:no-underline">
+                  <AccordionTrigger className="hover:no-underline py-4">
                     <div className="flex items-center gap-4 text-left flex-1">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <User className="h-5 w-5 text-primary" />
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 shrink-0">
+                        <User className="h-6 w-6 text-primary" />
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-semibold">{client.full_name}</p>
+                          <p className="font-semibold text-foreground">{client.full_name}</p>
                           {clientStatus === "paid_off" && (
-                            <Badge variant="default">Quitado</Badge>
+                            <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-0">Quitado</Badge>
                           )}
                           {clientStatus === "overdue" && (
-                            <Badge variant="destructive">Com atraso</Badge>
+                            <Badge variant="destructive" className="border-0">Com atraso</Badge>
                           )}
                           {clientStatus === "on_time" && (
-                            <Badge variant="secondary">Em dia</Badge>
+                            <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-0">Em dia</Badge>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground mt-1 truncate">
                           CPF: {formatCPF(client.cpf)} • {client.loans.length}{" "}
                           empréstimo(s)
                           {client.phone && (
@@ -416,27 +418,27 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                           return (
                             <div
                               key={loan.id}
-                              className="border rounded-lg p-4 space-y-4"
+                              className="border border-border/50 rounded-xl p-5 space-y-4 bg-muted/30"
                             >
                               <div className="flex items-start justify-between gap-4">
                                 <div>
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <p className="font-semibold">
+                                    <p className="text-xl font-bold text-foreground">
                                       {formatCurrency(Number(loan.amount))}
                                     </p>
                                     {loanStatus === "paid_off" && (
-                                      <Badge variant="default">Quitado</Badge>
+                                      <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-0">Quitado</Badge>
                                     )}
                                     {loanStatus === "overdue" && (
-                                      <Badge variant="destructive">
+                                      <Badge variant="destructive" className="border-0">
                                         {overdueInstallments.length} parcela(s) em atraso
                                       </Badge>
                                     )}
                                     {loanStatus === "on_time" && (
-                                      <Badge variant="secondary">Em dia</Badge>
+                                      <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-0">Em dia</Badge>
                                     )}
                                   </div>
-                                  <p className="text-sm text-muted-foreground">
+                                  <p className="text-sm text-muted-foreground mt-1">
                                     {loan.installments_count}x de{" "}
                                     {formatCurrency(
                                       Number(loan.amount) / loan.installments_count
@@ -501,9 +503,12 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
 
                               {/* Overdue summary */}
                               {overdueInstallments.length > 0 && (
-                                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+                                <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 flex items-center gap-3">
+                                  <div className="rounded-lg bg-destructive/20 p-2">
+                                    <Clock className="h-4 w-4 text-destructive" />
+                                  </div>
                                   <p className="text-sm font-medium text-destructive">
-                                    ⚠️ {overdueInstallments.length} parcela(s) em atraso
+                                    {overdueInstallments.length} parcela(s) em atraso
                                     totalizando{" "}
                                     {formatCurrency(
                                       overdueInstallments.reduce(
@@ -549,17 +554,17 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                         </TableCell>
                                         <TableCell>
                                           {installment.paid ? (
-                                            <Badge variant="default">
+                                            <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-0">
                                               <CheckCircle2 className="mr-1 h-3 w-3" />
                                               Pago
                                             </Badge>
                                           ) : isOverdue ? (
-                                            <Badge variant="destructive">
+                                            <Badge variant="destructive" className="border-0">
                                               <Clock className="mr-1 h-3 w-3" />
                                               Vencida
                                             </Badge>
                                           ) : (
-                                            <Badge variant="outline">
+                                            <Badge variant="outline" className="border-border">
                                               <Clock className="mr-1 h-3 w-3" />
                                               Pendente
                                             </Badge>
@@ -572,6 +577,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                               onClick={() =>
                                                 handlePayInstallment(installment.id)
                                               }
+                                              className="gradient-primary border-0 shadow-sm hover:opacity-90"
                                             >
                                               Marcar Pago
                                             </Button>

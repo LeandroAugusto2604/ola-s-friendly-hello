@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { CreditCard, LogOut, Plus, Wifi } from "lucide-react";
+import { Banknote, LogOut, Plus, Radio } from "lucide-react";
 
 function DashboardContent() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -42,9 +42,9 @@ function DashboardContent() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="space-y-4 w-full max-w-md p-8">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-8 w-3/4" />
+          <Skeleton className="h-12 w-full rounded-lg" />
+          <Skeleton className="h-32 w-full rounded-lg" />
+          <Skeleton className="h-8 w-3/4 rounded-lg" />
         </div>
       </div>
     );
@@ -57,30 +57,38 @@ function DashboardContent() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card shadow-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
+      <header className="gradient-header text-white sticky top-0 z-10 shadow-soft">
+        <div className="container mx-auto px-4 py-4 lg:py-5">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-                <CreditCard className="h-6 w-6 text-primary-foreground" />
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
+                <Banknote className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">
-                  Sistema de Empréstimos
+                <h1 className="text-xl lg:text-2xl font-bold tracking-tight">
+                  LoanManager
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-white/70 hidden sm:block">
                   {user.email}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Badge variant="outline" className="gap-1.5 hidden sm:flex">
-                <Wifi className="h-3 w-3 text-green-500" />
+              <Badge 
+                variant="outline" 
+                className="gap-1.5 hidden sm:flex bg-white/10 border-white/20 text-white hover:bg-white/20"
+              >
+                <Radio className="h-3 w-3 text-emerald-400 animate-pulse" />
                 Tempo real
               </Badge>
-              <Button variant="outline" size="sm" onClick={signOut}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={signOut}
+                className="text-white hover:bg-white/10 hover:text-white"
+              >
                 <LogOut className="h-4 w-4 mr-2" />
-                Sair
+                <span className="hidden sm:inline">Sair</span>
               </Button>
             </div>
           </div>
@@ -88,26 +96,35 @@ function DashboardContent() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="space-y-8">
+      <main className="container mx-auto px-4 py-6 lg:py-8">
+        <div className="space-y-6 lg:space-y-8 animate-fade-in">
           {/* Overdue Alert */}
           <OverdueAlert refreshKey={refreshKey} />
 
           {/* Stats */}
           <DashboardStats refreshKey={refreshKey} />
 
-          {/* Add Loan Button */}
-          <div className="flex justify-end">
+          {/* Add Loan Section */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">
+                Gerenciar Empréstimos
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Visualize e gerencie todos os clientes e empréstimos
+              </p>
+            </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="lg" className="gap-2">
+                <Button size="lg" className="gap-2 shadow-soft gradient-primary border-0 hover:opacity-90 transition-smooth">
                   <Plus className="h-5 w-5" />
-                  Novo Empréstimo
+                  <span className="hidden sm:inline">Novo Empréstimo</span>
+                  <span className="sm:hidden">Novo</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto shadow-hover">
                 <DialogHeader>
-                  <DialogTitle>Cadastrar Novo Empréstimo</DialogTitle>
+                  <DialogTitle className="text-xl">Cadastrar Novo Empréstimo</DialogTitle>
                 </DialogHeader>
                 <LoanForm onSuccess={handleLoanSuccess} />
               </DialogContent>
