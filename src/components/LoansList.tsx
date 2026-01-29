@@ -543,8 +543,14 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                             .filter((i) => i.paid)
                             .reduce((sum, i) => sum + Number(i.amount), 0);
                           const loanStatus = getLoanStatus(loan);
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
                           const overdueInstallments = loan.installments.filter(
-                            (i) => !i.paid && new Date(i.due_date) < new Date()
+                            (i) => {
+                              if (i.paid) return false;
+                              const dueDate = new Date(i.due_date + "T00:00:00");
+                              return dueDate < today; // Only overdue if BEFORE today
+                            }
                           );
 
                           return (
@@ -781,9 +787,10 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                   </TableHeader>
                                 <TableBody>
                                   {loan.installments.map((installment) => {
-                                    const isOverdue =
-                                      !installment.paid &&
-                                      new Date(installment.due_date) < new Date();
+                                    const todayCheck = new Date();
+                                    todayCheck.setHours(0, 0, 0, 0);
+                                    const dueDateCheck = new Date(installment.due_date + "T00:00:00");
+                                    const isOverdue = !installment.paid && dueDateCheck < todayCheck;
 
                                     return (
                                       <TableRow key={installment.id}>
