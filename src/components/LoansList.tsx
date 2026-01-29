@@ -55,6 +55,8 @@ interface Installment {
 interface Loan {
   id: string;
   amount: number;
+  original_amount: number;
+  interest_rate: number;
   installments_count: number;
   created_at: string;
   installments: Installment[];
@@ -425,9 +427,20 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                               <div className="flex items-start justify-between gap-4">
                                 <div>
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <p className="text-xl font-bold text-foreground">
-                                      {formatCurrency(Number(loan.amount))}
-                                    </p>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <p className="text-base text-muted-foreground">
+                                        {formatCurrency(Number(loan.original_amount))}
+                                      </p>
+                                      <span className="text-muted-foreground">→</span>
+                                      <p className="text-xl font-bold text-foreground">
+                                        {formatCurrency(Number(loan.amount))}
+                                      </p>
+                                      {loan.interest_rate > 0 && (
+                                        <Badge variant="outline" className="text-xs">
+                                          +{loan.interest_rate}% juros
+                                        </Badge>
+                                      )}
+                                    </div>
                                     {loanStatus === "paid_off" && (
                                       <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-0">Quitado</Badge>
                                     )}

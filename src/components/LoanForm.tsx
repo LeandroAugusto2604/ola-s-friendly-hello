@@ -141,7 +141,9 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
         .from("loans")
         .insert({
           client_id: clientId,
+          original_amount: amount,
           amount: totalWithInterest,
+          interest_rate: interestRate,
           installments_count: installmentsCount,
         })
         .select()
