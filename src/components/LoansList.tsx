@@ -194,9 +194,9 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
         `Olá ${clientName}! Para confirmar seu empréstimo, acesse o link abaixo e tire uma foto segurando seu RG:\n\n${verificationLink}`
       );
 
-      // Open WhatsApp - using location.href for better mobile compatibility
+      // Open WhatsApp in a new tab/window to preserve current page
       const whatsappUrl = `https://wa.me/${whatsappPhone}?text=${message}`;
-      window.location.href = whatsappUrl;
+      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
 
       toast({
         title: "Link gerado!",
@@ -243,7 +243,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
     );
 
     const whatsappUrl = `https://wa.me/${whatsappPhone}?text=${message}`;
-    window.location.href = whatsappUrl;
+    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
 
     toast({
       title: "WhatsApp aberto!",
