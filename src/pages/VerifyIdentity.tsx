@@ -54,15 +54,15 @@ export default function VerifyIdentity() {
 
   const startCamera = async () => {
     try {
+      // CRITICAL: getUserMedia called directly in click handler
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        setIsCameraActive(true);
-      }
+      // First activate camera UI, then attach stream after render
+      setIsCameraActive(true);
     } catch (error) {
+      console.error("Camera error:", error);
       toast({
         title: "Erro ao acessar câmera",
         description: "Permita o acesso à câmera ou use o botão de upload.",
@@ -70,6 +70,13 @@ export default function VerifyIdentity() {
       });
     }
   };
+
+  // Attach stream to video element after it renders
+  useEffect(() => {
+    if (isCameraActive && streamRef.current && videoRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [isCameraActive]);
 
   const stopCamera = () => {
     if (streamRef.current) {
