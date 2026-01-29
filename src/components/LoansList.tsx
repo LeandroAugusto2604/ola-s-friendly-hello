@@ -341,13 +341,15 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                             <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-0">Em dia</Badge>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground mt-1 truncate">
+                        <p className="text-sm text-muted-foreground mt-1">
                           CPF: {formatCPF(client.cpf)} • {client.loans.length}{" "}
                           empréstimo(s)
-                          {client.phone && (
-                            <> • Tel: {client.phone.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}</>
-                          )}
                         </p>
+                        {client.phone && (
+                          <p className="text-sm text-muted-foreground">
+                            Tel: {client.phone.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </AccordionTrigger>
