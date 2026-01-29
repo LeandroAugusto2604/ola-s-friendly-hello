@@ -14,7 +14,115 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clients: {
+        Row: {
+          address: string
+          cpf: string
+          created_at: string
+          full_name: string
+          id: string
+          rg: string
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          cpf: string
+          created_at?: string
+          full_name: string
+          id?: string
+          rg: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          cpf?: string
+          created_at?: string
+          full_name?: string
+          id?: string
+          rg?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      installments: {
+        Row: {
+          amount: number
+          created_at: string
+          due_date: string
+          id: string
+          installment_number: number
+          loan_id: string
+          paid: boolean
+          paid_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          due_date: string
+          id?: string
+          installment_number: number
+          loan_id: string
+          paid?: boolean
+          paid_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          due_date?: string
+          id?: string
+          installment_number?: number
+          loan_id?: string
+          paid?: boolean
+          paid_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "installments_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loans: {
+        Row: {
+          amount: number
+          client_id: string
+          created_at: string
+          id: string
+          installments_count: number
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          client_id: string
+          created_at?: string
+          id?: string
+          installments_count: number
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          created_at?: string
+          id?: string
+          installments_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loans_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
