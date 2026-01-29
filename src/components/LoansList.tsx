@@ -339,12 +339,16 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
 
   const getLoanStatus = (loan: Loan): "on_time" | "overdue" | "paid_off" => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize to start of day
     const allPaid = loan.installments.every((i) => i.paid);
     if (allPaid) return "paid_off";
 
-    const hasOverdue = loan.installments.some(
-      (i) => !i.paid && new Date(i.due_date) < today
-    );
+    const hasOverdue = loan.installments.some((i) => {
+      if (i.paid) return false;
+      const dueDate = new Date(i.due_date + "T00:00:00");
+      // Only overdue if due_date is BEFORE today (not including today)
+      return dueDate < today;
+    });
     return hasOverdue ? "overdue" : "on_time";
   };
 

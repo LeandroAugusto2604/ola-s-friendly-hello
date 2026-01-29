@@ -11,7 +11,10 @@ export function OverdueAlert({ refreshKey }: OverdueAlertProps) {
   const { data: overdueData } = useQuery({
     queryKey: ["overdue-installments", refreshKey],
     queryFn: async () => {
-      const today = new Date().toISOString().split("T")[0];
+      // Get yesterday's date to only show installments due BEFORE today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().split("T")[0];
       
       const { data: installments } = await supabase
         .from("installments")
