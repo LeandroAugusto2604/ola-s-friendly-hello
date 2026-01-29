@@ -57,7 +57,7 @@ const Index = () => {
             </TabsContent>
 
             <TabsContent value="list">
-              <LoansList refreshKey={refreshKey} />
+              <LoansList refreshKey={refreshKey} onDataChange={handleLoanCreated} />
             </TabsContent>
           </Tabs>
         </div>
