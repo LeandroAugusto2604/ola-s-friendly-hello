@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -16,12 +18,30 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle2, Clock, FileText, User } from "lucide-react";
+import { CheckCircle2, Clock, FileText, Search, Trash2, User } from "lucide-react";
 
 interface Installment {
   id: string;
@@ -49,11 +69,17 @@ interface Client {
   loans: Loan[];
 }
 
+type StatusFilter = "all" | "on_time" | "overdue" | "paid_off";
+
 interface LoansListProps {
   refreshKey: number;
+  onDataChange?: () => void;
 }
 
-export function LoansList({ refreshKey }: LoansListProps) {
+export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
   const { data: clients, isLoading, refetch } = useQuery({
     queryKey: ["clients-with-loans", refreshKey],
     queryFn: async () => {
@@ -116,6 +142,29 @@ export function LoansList({ refreshKey }: LoansListProps) {
         description: "Pagamento registrado com sucesso",
       });
       refetch();
+      onDataChange?.();
+    }
+  };
+
+  const handleDeleteLoan = async (loanId: string) => {
+    const { error } = await supabase
+      .from("loans")
+      .delete()
+      .eq("id", loanId);
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível remover o empréstimo",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Empréstimo removido!",
+        description: "O empréstimo e suas parcelas foram excluídos",
+      });
+      refetch();
+      onDataChange?.();
     }
   };
 
@@ -129,6 +178,43 @@ export function LoansList({ refreshKey }: LoansListProps) {
   const formatCPF = (cpf: string) => {
     return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
   };
+
+  const getLoanStatus = (loan: Loan): "on_time" | "overdue" | "paid_off" => {
+    const today = new Date();
+    const allPaid = loan.installments.every((i) => i.paid);
+    if (allPaid) return "paid_off";
+
+    const hasOverdue = loan.installments.some(
+      (i) => !i.paid && new Date(i.due_date) < today
+    );
+    return hasOverdue ? "overdue" : "on_time";
+  };
+
+  const getClientStatus = (client: Client): "on_time" | "overdue" | "paid_off" | "no_loans" => {
+    if (client.loans.length === 0) return "no_loans";
+    
+    const statuses = client.loans.map(getLoanStatus);
+    if (statuses.some((s) => s === "overdue")) return "overdue";
+    if (statuses.every((s) => s === "paid_off")) return "paid_off";
+    return "on_time";
+  };
+
+  // Filter clients based on search and status
+  const filteredClients = clients?.filter((client) => {
+    // Search filter
+    const searchLower = searchQuery.toLowerCase().trim();
+    const matchesSearch =
+      searchLower === "" ||
+      client.full_name.toLowerCase().includes(searchLower) ||
+      client.cpf.includes(searchQuery.replace(/\D/g, ""));
+
+    // Status filter
+    if (!matchesSearch) return false;
+    if (statusFilter === "all") return true;
+
+    const clientStatus = getClientStatus(client);
+    return clientStatus === statusFilter;
+  });
 
   if (isLoading) {
     return (
@@ -145,24 +231,6 @@ export function LoansList({ refreshKey }: LoansListProps) {
     );
   }
 
-  if (!clients || clients.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Clientes e Empréstimos
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-center text-muted-foreground py-8">
-            Nenhum cliente cadastrado ainda.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -171,153 +239,282 @@ export function LoansList({ refreshKey }: LoansListProps) {
           Clientes e Empréstimos
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <Accordion type="multiple" className="space-y-4">
-          {clients.map((client) => (
-            <AccordionItem
-              key={client.id}
-              value={client.id}
-              className="border rounded-lg px-4"
-            >
-              <AccordionTrigger className="hover:no-underline">
-                <div className="flex items-center gap-4 text-left">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                    <User className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-semibold">{client.full_name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      CPF: {formatCPF(client.cpf)} • {client.loans.length}{" "}
-                      empréstimo(s)
-                    </p>
-                  </div>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-4 pt-4">
-                  <div className="grid gap-2 text-sm">
-                    <p>
-                      <strong>RG:</strong> {client.rg}
-                    </p>
-                    <p>
-                      <strong>Endereço:</strong> {client.address}
-                    </p>
-                  </div>
+      <CardContent className="space-y-4">
+        {/* Search and Filters */}
+        <div className="flex flex-col gap-4 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome ou CPF..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select
+            value={statusFilter}
+            onValueChange={(value: StatusFilter) => setStatusFilter(value)}
+          >
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="Filtrar por status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="on_time">Em dia</SelectItem>
+              <SelectItem value="overdue">Com atraso</SelectItem>
+              <SelectItem value="paid_off">Quitado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-                  {client.loans.map((loan) => {
-                    const paidCount = loan.installments.filter((i) => i.paid).length;
-                    const totalPaid = loan.installments
-                      .filter((i) => i.paid)
-                      .reduce((sum, i) => sum + Number(i.amount), 0);
+        {/* Results count */}
+        <p className="text-sm text-muted-foreground">
+          {filteredClients?.length || 0} cliente(s) encontrado(s)
+        </p>
 
-                    return (
-                      <div
-                        key={loan.id}
-                        className="border rounded-lg p-4 space-y-4"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-semibold">
-                              {formatCurrency(Number(loan.amount))}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {loan.installments_count}x de{" "}
-                              {formatCurrency(
-                                Number(loan.amount) / loan.installments_count
-                              )}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <Badge
-                              variant={
-                                paidCount === loan.installments_count
-                                  ? "default"
-                                  : "secondary"
-                              }
-                            >
-                              {paidCount}/{loan.installments_count} pagas
-                            </Badge>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              Pago: {formatCurrency(totalPaid)}
-                            </p>
-                          </div>
-                        </div>
-
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Parcela</TableHead>
-                              <TableHead>Valor</TableHead>
-                              <TableHead>Vencimento</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead className="text-right">Ação</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {loan.installments.map((installment) => {
-                              const isOverdue =
-                                !installment.paid &&
-                                new Date(installment.due_date) < new Date();
-
-                              return (
-                                <TableRow key={installment.id}>
-                                  <TableCell>
-                                    {installment.installment_number}/
-                                    {loan.installments_count}
-                                  </TableCell>
-                                  <TableCell>
-                                    {formatCurrency(Number(installment.amount))}
-                                  </TableCell>
-                                  <TableCell>
-                                    {format(
-                                      new Date(installment.due_date + "T00:00:00"),
-                                      "dd/MM/yyyy",
-                                      { locale: ptBR }
-                                    )}
-                                  </TableCell>
-                                  <TableCell>
-                                    {installment.paid ? (
-                                      <Badge variant="default">
-                                        <CheckCircle2 className="mr-1 h-3 w-3" />
-                                        Pago
-                                      </Badge>
-                                    ) : isOverdue ? (
-                                      <Badge variant="destructive">
-                                        <Clock className="mr-1 h-3 w-3" />
-                                        Vencida
-                                      </Badge>
-                                    ) : (
-                                      <Badge variant="outline">
-                                        <Clock className="mr-1 h-3 w-3" />
-                                        Pendente
-                                      </Badge>
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    {!installment.paid && (
-                                      <Button
-                                        size="sm"
-                                        onClick={() =>
-                                          handlePayInstallment(installment.id)
-                                        }
-                                      >
-                                        Marcar Pago
-                                      </Button>
-                                    )}
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
+        {!filteredClients || filteredClients.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">
+            {searchQuery || statusFilter !== "all"
+              ? "Nenhum cliente encontrado com os filtros aplicados."
+              : "Nenhum cliente cadastrado ainda."}
+          </p>
+        ) : (
+          <Accordion type="multiple" className="space-y-4">
+            {filteredClients.map((client) => {
+              const clientStatus = getClientStatus(client);
+              
+              return (
+                <AccordionItem
+                  key={client.id}
+                  value={client.id}
+                  className="border rounded-lg px-4"
+                >
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-4 text-left flex-1">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                        <User className="h-5 w-5 text-primary" />
                       </div>
-                    );
-                  })}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold">{client.full_name}</p>
+                          {clientStatus === "paid_off" && (
+                            <Badge variant="default">Quitado</Badge>
+                          )}
+                          {clientStatus === "overdue" && (
+                            <Badge variant="destructive">Com atraso</Badge>
+                          )}
+                          {clientStatus === "on_time" && (
+                            <Badge variant="secondary">Em dia</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          CPF: {formatCPF(client.cpf)} • {client.loans.length}{" "}
+                          empréstimo(s)
+                        </p>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-4 pt-4">
+                      <div className="grid gap-2 text-sm">
+                        <p>
+                          <strong>RG:</strong> {client.rg}
+                        </p>
+                        <p>
+                          <strong>Endereço:</strong> {client.address}
+                        </p>
+                      </div>
+
+                      {client.loans.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                          Nenhum empréstimo cadastrado.
+                        </p>
+                      ) : (
+                        client.loans.map((loan) => {
+                          const paidCount = loan.installments.filter((i) => i.paid).length;
+                          const totalPaid = loan.installments
+                            .filter((i) => i.paid)
+                            .reduce((sum, i) => sum + Number(i.amount), 0);
+                          const loanStatus = getLoanStatus(loan);
+                          const overdueInstallments = loan.installments.filter(
+                            (i) => !i.paid && new Date(i.due_date) < new Date()
+                          );
+
+                          return (
+                            <div
+                              key={loan.id}
+                              className="border rounded-lg p-4 space-y-4"
+                            >
+                              <div className="flex items-start justify-between gap-4">
+                                <div>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="font-semibold">
+                                      {formatCurrency(Number(loan.amount))}
+                                    </p>
+                                    {loanStatus === "paid_off" && (
+                                      <Badge variant="default">Quitado</Badge>
+                                    )}
+                                    {loanStatus === "overdue" && (
+                                      <Badge variant="destructive">
+                                        {overdueInstallments.length} parcela(s) em atraso
+                                      </Badge>
+                                    )}
+                                    {loanStatus === "on_time" && (
+                                      <Badge variant="secondary">Em dia</Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">
+                                    {loan.installments_count}x de{" "}
+                                    {formatCurrency(
+                                      Number(loan.amount) / loan.installments_count
+                                    )}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="text-right">
+                                    <Badge
+                                      variant={
+                                        paidCount === loan.installments_count
+                                          ? "default"
+                                          : "secondary"
+                                      }
+                                    >
+                                      {paidCount}/{loan.installments_count} pagas
+                                    </Badge>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                      Pago: {formatCurrency(totalPaid)}
+                                    </p>
+                                  </div>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        variant="destructive"
+                                        size="icon"
+                                        className="ml-2"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>
+                                          Remover empréstimo?
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Esta ação não pode ser desfeita. O empréstimo
+                                          de {formatCurrency(Number(loan.amount))} e
+                                          todas as suas parcelas serão removidos
+                                          permanentemente.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => handleDeleteLoan(loan.id)}
+                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        >
+                                          Remover
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                              </div>
+
+                              {/* Overdue summary */}
+                              {overdueInstallments.length > 0 && (
+                                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+                                  <p className="text-sm font-medium text-destructive">
+                                    ⚠️ {overdueInstallments.length} parcela(s) em atraso
+                                    totalizando{" "}
+                                    {formatCurrency(
+                                      overdueInstallments.reduce(
+                                        (sum, i) => sum + Number(i.amount),
+                                        0
+                                      )
+                                    )}
+                                  </p>
+                                </div>
+                              )}
+
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Parcela</TableHead>
+                                    <TableHead>Valor</TableHead>
+                                    <TableHead>Vencimento</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead className="text-right">Ação</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {loan.installments.map((installment) => {
+                                    const isOverdue =
+                                      !installment.paid &&
+                                      new Date(installment.due_date) < new Date();
+
+                                    return (
+                                      <TableRow key={installment.id}>
+                                        <TableCell>
+                                          {installment.installment_number}/
+                                          {loan.installments_count}
+                                        </TableCell>
+                                        <TableCell>
+                                          {formatCurrency(Number(installment.amount))}
+                                        </TableCell>
+                                        <TableCell>
+                                          {format(
+                                            new Date(installment.due_date + "T00:00:00"),
+                                            "dd/MM/yyyy",
+                                            { locale: ptBR }
+                                          )}
+                                        </TableCell>
+                                        <TableCell>
+                                          {installment.paid ? (
+                                            <Badge variant="default">
+                                              <CheckCircle2 className="mr-1 h-3 w-3" />
+                                              Pago
+                                            </Badge>
+                                          ) : isOverdue ? (
+                                            <Badge variant="destructive">
+                                              <Clock className="mr-1 h-3 w-3" />
+                                              Vencida
+                                            </Badge>
+                                          ) : (
+                                            <Badge variant="outline">
+                                              <Clock className="mr-1 h-3 w-3" />
+                                              Pendente
+                                            </Badge>
+                                          )}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                          {!installment.paid && (
+                                            <Button
+                                              size="sm"
+                                              onClick={() =>
+                                                handlePayInstallment(installment.id)
+                                              }
+                                            >
+                                              Marcar Pago
+                                            </Button>
+                                          )}
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        )}
       </CardContent>
     </Card>
   );
