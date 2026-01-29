@@ -50,6 +50,44 @@ export type Database = {
         }
         Relationships: []
       }
+      identity_verifications: {
+        Row: {
+          created_at: string
+          id: string
+          loan_id: string
+          photo_url: string | null
+          status: string
+          token: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          loan_id: string
+          photo_url?: string | null
+          status?: string
+          token: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          loan_id?: string
+          photo_url?: string | null
+          status?: string
+          token?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "identity_verifications_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       installments: {
         Row: {
           amount: number
