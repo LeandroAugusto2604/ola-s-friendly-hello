@@ -30,6 +30,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -41,7 +48,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle2, Clock, FileText, Search, Trash2, User } from "lucide-react";
+import { CheckCircle2, Clock, FileText, Search, Trash2, User, MessageCircle, Copy, Eye, Send, Loader2 } from "lucide-react";
 
 interface Installment {
   id: string;
@@ -52,6 +59,15 @@ interface Installment {
   paid_at: string | null;
 }
 
+interface IdentityVerification {
+  id: string;
+  token: string;
+  status: string;
+  photo_url: string | null;
+  created_at: string;
+  verified_at: string | null;
+}
+
 interface Loan {
   id: string;
   amount: number;
@@ -60,6 +76,7 @@ interface Loan {
   installments_count: number;
   created_at: string;
   installments: Installment[];
+  identity_verification?: IdentityVerification | null;
 }
 
 interface Client {
@@ -82,6 +99,7 @@ interface LoansListProps {
 export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [sendingVerification, setSendingVerification] = useState<string | null>(null);
 
   const { data: clients, isLoading, refetch } = useQuery({
     queryKey: ["clients-with-loans", refreshKey],
@@ -109,9 +127,19 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                 .eq("loan_id", loan.id)
                 .order("installment_number", { ascending: true });
 
+              // Fetch identity verification for this loan
+              const { data: verificationData } = await supabase
+                .from("identity_verifications")
+                .select("*")
+                .eq("loan_id", loan.id)
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .single();
+
               return {
                 ...loan,
                 installments: installmentsData || [],
+                identity_verification: verificationData || null,
               };
             })
           );
@@ -126,6 +154,100 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
       return clientsWithLoans;
     },
   });
+
+  const handleSendVerification = async (loanId: string, clientPhone: string | null, clientName: string) => {
+    if (!clientPhone) {
+      toast({
+        title: "Telefone não cadastrado",
+        description: "Cadastre o telefone do cliente para enviar a verificação.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSendingVerification(loanId);
+
+    try {
+      // Generate unique token
+      const token = crypto.randomUUID();
+
+      // Create verification record
+      const { error } = await supabase
+        .from("identity_verifications")
+        .insert({
+          loan_id: loanId,
+          token: token,
+          status: "pending",
+        });
+
+      if (error) throw error;
+
+      // Generate verification link
+      const verificationLink = `https://emprestimo-zl.lovable.app/verify/${token}`;
+
+      // Format phone for WhatsApp (remove non-digits and add country code if needed)
+      const cleanPhone = clientPhone.replace(/\D/g, "");
+      const whatsappPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+
+      // Create WhatsApp message
+      const message = encodeURIComponent(
+        `Olá ${clientName}! Para confirmar seu empréstimo, acesse o link abaixo e tire uma foto segurando seu RG:\n\n${verificationLink}`
+      );
+
+      // Open WhatsApp
+      window.open(`https://wa.me/${whatsappPhone}?text=${message}`, "_blank");
+
+      toast({
+        title: "Link gerado!",
+        description: "O WhatsApp foi aberto com a mensagem pronta.",
+      });
+
+      refetch();
+    } catch (error) {
+      console.error("Error creating verification:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível gerar o link de verificação.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingVerification(null);
+    }
+  };
+
+  const copyVerificationLink = (token: string) => {
+    const link = `https://emprestimo-zl.lovable.app/verify/${token}`;
+    navigator.clipboard.writeText(link);
+    toast({
+      title: "Link copiado!",
+      description: "O link foi copiado para a área de transferência.",
+    });
+  };
+
+  const resendVerification = async (loanId: string, existingToken: string, clientPhone: string | null, clientName: string) => {
+    if (!clientPhone) {
+      toast({
+        title: "Telefone não cadastrado",
+        description: "Cadastre o telefone do cliente para reenviar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const verificationLink = `https://emprestimo-zl.lovable.app/verify/${existingToken}`;
+    const cleanPhone = clientPhone.replace(/\D/g, "");
+    const whatsappPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+    const message = encodeURIComponent(
+      `Olá ${clientName}! Para confirmar seu empréstimo, acesse o link abaixo e tire uma foto segurando seu RG:\n\n${verificationLink}`
+    );
+
+    window.open(`https://wa.me/${whatsappPhone}?text=${message}`, "_blank");
+
+    toast({
+      title: "WhatsApp aberto!",
+      description: "Reenvie a mensagem para o cliente.",
+    });
+  };
 
   const handlePayInstallment = async (installmentId: string) => {
     const { error } = await supabase
@@ -538,6 +660,104 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                   </p>
                                 </div>
                               )}
+
+                              {/* Identity Verification Section */}
+                              <div className="border border-border/50 rounded-lg p-4 bg-background">
+                                <div className="flex items-center justify-between gap-3 flex-wrap">
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-sm font-medium">Verificação de Identidade:</span>
+                                    {!loan.identity_verification ? (
+                                      <Badge variant="outline" className="border-muted-foreground/30">
+                                        Não solicitada
+                                      </Badge>
+                                    ) : loan.identity_verification.status === "completed" ? (
+                                      <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-0">
+                                        <CheckCircle2 className="mr-1 h-3 w-3" />
+                                        Verificado
+                                      </Badge>
+                                    ) : (
+                                      <Badge className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-0">
+                                        <Clock className="mr-1 h-3 w-3" />
+                                        Aguardando foto
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-2">
+                                    {!loan.identity_verification ? (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-emerald-600 border-emerald-600/30 hover:bg-emerald-500/10"
+                                        onClick={() => handleSendVerification(loan.id, client.phone, client.full_name)}
+                                        disabled={sendingVerification === loan.id}
+                                      >
+                                        {sendingVerification === loan.id ? (
+                                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                        ) : (
+                                          <MessageCircle className="h-4 w-4 mr-1" />
+                                        )}
+                                        Solicitar via WhatsApp
+                                      </Button>
+                                    ) : loan.identity_verification.status === "pending" ? (
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => copyVerificationLink(loan.identity_verification!.token)}
+                                        >
+                                          <Copy className="h-4 w-4 mr-1" />
+                                          Copiar link
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => resendVerification(
+                                            loan.id,
+                                            loan.identity_verification!.token,
+                                            client.phone,
+                                            client.full_name
+                                          )}
+                                        >
+                                          <Send className="h-4 w-4 mr-1" />
+                                          Reenviar
+                                        </Button>
+                                      </>
+                                    ) : loan.identity_verification.photo_url ? (
+                                      <Dialog>
+                                        <DialogTrigger asChild>
+                                          <Button size="sm" variant="outline">
+                                            <Eye className="h-4 w-4 mr-1" />
+                                            Ver foto
+                                          </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-2xl">
+                                          <DialogHeader>
+                                            <DialogTitle>Foto de Verificação - {client.full_name}</DialogTitle>
+                                          </DialogHeader>
+                                          <div className="mt-4">
+                                            <img
+                                              src={loan.identity_verification.photo_url}
+                                              alt="Foto de verificação"
+                                              className="w-full rounded-lg"
+                                            />
+                                            <p className="text-sm text-muted-foreground mt-3 text-center">
+                                              Verificado em{" "}
+                                              {loan.identity_verification.verified_at
+                                                ? format(
+                                                    new Date(loan.identity_verification.verified_at),
+                                                    "dd/MM/yyyy 'às' HH:mm",
+                                                    { locale: ptBR }
+                                                  )
+                                                : "Data não disponível"}
+                                            </p>
+                                          </div>
+                                        </DialogContent>
+                                      </Dialog>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </div>
 
                               {/* Mobile-friendly table wrapper */}
                               <div className="overflow-x-auto -mx-2 sm:mx-0">
