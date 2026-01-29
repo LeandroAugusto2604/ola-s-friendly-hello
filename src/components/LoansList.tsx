@@ -427,20 +427,24 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                               <div className="flex items-start justify-between gap-4">
                                 <div>
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <p className="text-base text-muted-foreground">
-                                        {formatCurrency(Number(loan.original_amount))}
-                                      </p>
-                                      <span className="text-muted-foreground">→</span>
-                                      <p className="text-xl font-bold text-foreground">
-                                        {formatCurrency(Number(loan.amount))}
-                                      </p>
-                                      {loan.interest_rate > 0 && (
+                                    {loan.interest_rate > 0 ? (
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <p className="text-lg text-foreground">
+                                          {formatCurrency(Number(loan.original_amount))}
+                                        </p>
+                                        <span className="text-muted-foreground">→</span>
+                                        <p className="text-lg text-foreground">
+                                          {formatCurrency(Number(loan.amount))}
+                                        </p>
                                         <Badge variant="outline" className="text-xs">
                                           +{loan.interest_rate}% juros
                                         </Badge>
-                                      )}
-                                    </div>
+                                      </div>
+                                    ) : (
+                                      <p className="text-lg text-foreground">
+                                        {formatCurrency(Number(loan.amount))}
+                                      </p>
+                                    )}
                                     {loanStatus === "paid_off" && (
                                       <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-0">Quitado</Badge>
                                     )}
