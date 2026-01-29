@@ -1,34 +1,48 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { LoanForm } from "@/components/LoanForm";
 import { LoansList } from "@/components/LoansList";
 import { DashboardStats } from "@/components/DashboardStats";
+import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CreditCard, LayoutDashboard, UserPlus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { CreditCard, LayoutDashboard, UserPlus, Wifi } from "lucide-react";
 
 const Index = () => {
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const handleLoanCreated = () => {
+  const handleDataChange = useCallback(() => {
     setRefreshKey((prev) => prev + 1);
-  };
+  }, []);
+
+  // Subscribe to real-time updates from all tables
+  useRealtimeSubscription({
+    tables: ["clients", "loans", "installments"],
+    onDataChange: handleDataChange,
+  });
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card shadow-sm">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <CreditCard className="h-6 w-6 text-primary-foreground" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+                <CreditCard className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">
+                  Sistema de Empréstimos
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Gestão profissional de empréstimos e parcelas
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                Sistema de Empréstimos
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Gestão profissional de empréstimos e parcelas
-              </p>
-            </div>
+            <Badge variant="outline" className="gap-1.5">
+              <Wifi className="h-3 w-3 text-green-500" />
+              Tempo real
+            </Badge>
           </div>
         </div>
       </header>
@@ -53,11 +67,11 @@ const Index = () => {
             </TabsList>
 
             <TabsContent value="new">
-              <LoanForm onSuccess={handleLoanCreated} />
+              <LoanForm onSuccess={handleDataChange} />
             </TabsContent>
 
             <TabsContent value="list">
-              <LoansList refreshKey={refreshKey} onDataChange={handleLoanCreated} />
+              <LoansList refreshKey={refreshKey} onDataChange={handleDataChange} />
             </TabsContent>
           </Tabs>
         </div>
