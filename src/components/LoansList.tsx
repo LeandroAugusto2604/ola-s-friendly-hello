@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { APP_URL } from "@/config/app";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -183,7 +184,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
       if (error) throw error;
 
       // Generate verification link
-      const verificationLink = `https://emprestimo-zl.lovable.app/verify/${token}`;
+      const verificationLink = `${APP_URL}/verify/${token}`;
 
       // Format phone for WhatsApp (remove non-digits and add country code if needed)
       const cleanPhone = clientPhone.replace(/\D/g, "");
@@ -217,7 +218,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
   };
 
   const copyVerificationLink = (token: string) => {
-    const link = `https://emprestimo-zl.lovable.app/verify/${token}`;
+    const link = `${APP_URL}/verify/${token}`;
     navigator.clipboard.writeText(link);
     toast({
       title: "Link copiado!",
@@ -235,7 +236,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
       return;
     }
 
-    const verificationLink = `https://emprestimo-zl.lovable.app/verify/${existingToken}`;
+    const verificationLink = `${APP_URL}/verify/${existingToken}`;
     const cleanPhone = clientPhone.replace(/\D/g, "");
     const whatsappPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
     const message = encodeURIComponent(

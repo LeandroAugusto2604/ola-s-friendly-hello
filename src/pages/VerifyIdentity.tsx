@@ -5,10 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Camera, Upload, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { SUPABASE_URL } from "@/config/app";
 
 type VerificationStatus = "loading" | "pending" | "completed" | "expired" | "not_found";
-
-const SUPABASE_URL = "https://bpafoiivtwmcqgjvsgjs.supabase.co";
 
 export default function VerifyIdentity() {
   const { token } = useParams<{ token: string }>();
