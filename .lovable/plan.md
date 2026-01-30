@@ -1,135 +1,109 @@
 
-# Plano: Verificação de Identidade via WhatsApp (Sem Custo)
+# Plano: Corrigir Links e Configurações para VPS
 
-## Resumo
+## Visão Geral
+O projeto exportado não funciona porque contém URLs hardcoded que apontam para a infraestrutura do Lovable/Supabase Cloud. Precisamos tornar essas URLs configuráveis para funcionar na sua VPS.
 
-Sistema de verificação de identidade onde após cadastrar um empréstimo, você poderá enviar um link de verificação para o cliente. O cliente receberá o link pelo WhatsApp, tirará uma foto segurando o RG, e você poderá visualizar a foto no sistema.
+---
 
-## Como vai funcionar
+## Mudanças Necessárias
+
+### 1. Criar Configuração de Domínio Centralizada
+
+**Arquivo**: `src/config/app.ts` (novo)
+
+Criar um arquivo de configuração que define o domínio da aplicação:
 
 ```text
-+------------------+     +------------------+     +------------------+
-|  Cadastrar       | --> |  Clique "Enviar  | --> |  WhatsApp abre   |
-|  Empréstimo      |     |  Verificação"    |     |  com link pronto |
-+------------------+     +------------------+     +------------------+
-                                                          |
-                                                          v
-+------------------+     +------------------+     +------------------+
-|  Você visualiza  | <-- |  Foto armazenada | <-- |  Cliente tira    |
-|  foto no sistema |     |  no Supabase     |     |  foto com RG     |
-+------------------+     +------------------+     +------------------+
+src/
+└── config/
+    └── app.ts    ← Novo arquivo com configurações do app
 ```
 
-## O que será implementado
+Este arquivo conterá:
+- URL base da aplicação (seu domínio VPS)
+- URL do Supabase (pode ser Cloud ou self-hosted)
 
-### 1. Banco de Dados
+---
 
-**Nova tabela `identity_verifications`:**
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| id | uuid | ID único |
-| loan_id | uuid | Referência ao empréstimo |
-| token | text | Token único para o link |
-| status | text | pending, completed, expired |
-| photo_url | text | URL da foto no Storage |
-| created_at | timestamp | Data de criação |
-| verified_at | timestamp | Data da verificação |
+### 2. Atualizar LoansList.tsx
 
-**Novo bucket de Storage:**
-- `identity-photos` - Bucket público para armazenar as fotos de verificação
+**Linhas afetadas**: 186, 220, 238
 
-### 2. Página Pública de Verificação
+Substituir o domínio hardcoded por uma configuração dinâmica:
 
-Nova rota `/verify/:token` acessível sem login:
-- Layout otimizado para celular
-- Acesso à câmera do dispositivo
-- Upload da foto com RG
-- Mensagem de confirmação após envio
+**Antes**:
+```typescript
+const verificationLink = `https://emprestimo-zl.lovable.app/verify/${token}`;
+```
 
-### 3. Atualizações na Lista de Empréstimos
+**Depois**:
+```typescript
+import { APP_URL } from "@/config/app";
+// ...
+const verificationLink = `${APP_URL}/verify/${token}`;
+```
 
-Para cada empréstimo, será adicionado:
-- **Botão "Enviar Verificação"** - Gera link e abre WhatsApp
-- **Status de verificação** - Badge mostrando Pendente/Verificado
-- **Visualização da foto** - Modal para ver a foto enviada
+---
 
-### 4. Integração com WhatsApp (Gratuita)
+### 3. Atualizar VerifyIdentity.tsx
 
-O botão "Enviar Verificação" vai:
-1. Gerar um token único para o link
-2. Salvar na tabela `identity_verifications`
-3. Abrir o WhatsApp Web/App com mensagem pré-preenchida:
-   - `Olá! Para confirmar seu empréstimo, acesse: https://emprestimo-zl.lovable.app/verify/TOKEN`
+**Linhas afetadas**: 13
 
-**Alternativa:** Botão para copiar o link caso o WhatsApp não abra automaticamente
+Substituir a URL do Supabase hardcoded:
 
-## Arquivos que serão criados
+**Antes**:
+```typescript
+const SUPABASE_URL = "https://bpafoiivtwmcqgjvsgjs.supabase.co";
+```
 
-| Arquivo | Descrição |
-|---------|-----------|
-| `src/pages/VerifyIdentity.tsx` | Página pública para cliente tirar foto |
-| Migration SQL | Criar tabela e bucket |
+**Depois**:
+```typescript
+import { SUPABASE_URL } from "@/config/app";
+```
 
-## Arquivos que serão modificados
+---
 
-| Arquivo | Modificação |
-|---------|-------------|
-| `src/App.tsx` | Adicionar rota `/verify/:token` |
-| `src/components/LoansList.tsx` | Adicionar botão de verificação, status e visualização |
-| `src/integrations/supabase/types.ts` | Tipos para nova tabela (gerado automaticamente) |
+## Arquivos a Modificar
+
+| Arquivo | Ação | Descrição |
+|---------|------|-----------|
+| `src/config/app.ts` | Criar | Configurações centralizadas |
+| `src/components/LoansList.tsx` | Editar | Usar APP_URL para links |
+| `src/pages/VerifyIdentity.tsx` | Editar | Usar SUPABASE_URL do config |
+
+---
 
 ## Detalhes Técnicos
 
-### Página de Verificação (`/verify/:token`)
+### Arquivo de Configuração (`src/config/app.ts`)
 
-```text
-+------------------------------------------+
-|     Verificação de Identidade            |
-+------------------------------------------+
-|                                          |
-|  Olá! Para confirmar seu empréstimo,     |
-|  tire uma foto segurando seu RG.         |
-|                                          |
-|  +----------------------------------+    |
-|  |                                  |    |
-|  |     [Preview da câmera]          |    |
-|  |                                  |    |
-|  +----------------------------------+    |
-|                                          |
-|  [ Tirar Foto ]    [ Enviar Arquivo ]    |
-|                                          |
-+------------------------------------------+
+```typescript
+// URL base da aplicação - altere para o domínio da sua VPS
+export const APP_URL = "https://seu-dominio.com.br";
+
+// URL do Supabase - mantenha se usar Supabase Cloud, 
+// ou altere se usar self-hosted
+export const SUPABASE_URL = "https://bpafoiivtwmcqgjvsgjs.supabase.co";
 ```
 
-### Botões na Lista de Empréstimos
+### Instruções Pós-Deploy na VPS
 
-Para empréstimos sem verificação:
-- Botão verde "Solicitar Verificação" com ícone do WhatsApp
+Após a implementação, você precisará:
 
-Para empréstimos com verificação pendente:
-- Badge amarelo "Aguardando foto"
-- Botão para reenviar link
+1. **Editar `src/config/app.ts`** na VPS com seu domínio real
+2. **Fazer rebuild do projeto** (`npm run build`)
+3. **Configurar secrets da Edge Function** no Supabase:
+   ```bash
+   supabase secrets set SUPABASE_URL=sua_url
+   supabase secrets set SUPABASE_SERVICE_ROLE_KEY=sua_chave
+   ```
 
-Para empréstimos verificados:
-- Badge verde "Verificado"
-- Botão para visualizar foto
+---
 
-### Segurança
+## Resultado Esperado
 
-- Token único de 32 caracteres (UUID) para cada verificação
-- Token expira após 7 dias
-- RLS policies para proteger os dados
-- Bucket público apenas para leitura (upload autenticado via token)
-
-## Fluxo do Usuário
-
-1. **Você cadastra um empréstimo** para o cliente João
-2. **Clica em "Solicitar Verificação"** no empréstimo do João
-3. **WhatsApp abre** com mensagem pronta para enviar
-4. **João recebe o link** e clica nele
-5. **João tira foto** segurando o RG
-6. **Você vê a foto** na lista de empréstimos com badge "Verificado"
-
-## Custo
-
-**Zero!** Não há integração com serviços pagos. O WhatsApp é aberto diretamente pelo navegador usando deep links.
+Após estas mudanças:
+- Os links de verificação enviados pelo WhatsApp apontarão para o domínio correto da VPS
+- A página de verificação de foto funcionará corretamente
+- Será fácil alterar configurações editando um único arquivo
