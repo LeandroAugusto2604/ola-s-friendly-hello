@@ -3,6 +3,7 @@ import { LoanForm } from "@/components/LoanForm";
 import { LoansList } from "@/components/LoansList";
 import { DashboardStats } from "@/components/DashboardStats";
 import { OverdueAlert } from "@/components/OverdueAlert";
+import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { AuthForm } from "@/components/AuthForm";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
@@ -114,14 +115,16 @@ function DashboardContent() {
                 Visualize e gerencie todos os clientes e empréstimos
               </p>
             </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="lg" className="gap-2 shadow-soft gradient-primary border-0 hover:opacity-90 transition-smooth">
-                  <Plus className="h-5 w-5" />
-                  <span className="hidden sm:inline">Novo Empréstimo</span>
-                  <span className="sm:hidden">Novo</span>
-                </Button>
-              </DialogTrigger>
+            <div className="flex items-center gap-2">
+              <ExportPdfButton />
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="lg" className="gap-2 shadow-soft gradient-primary border-0 hover:opacity-90 transition-smooth">
+                    <Plus className="h-5 w-5" />
+                    <span className="hidden sm:inline">Novo Empréstimo</span>
+                    <span className="sm:hidden">Novo</span>
+                  </Button>
+                </DialogTrigger>
               <DialogContent 
                 className="max-w-2xl max-h-[90vh] overflow-y-auto shadow-hover"
                 onPointerDownOutside={(e) => e.preventDefault()}
@@ -143,6 +146,7 @@ function DashboardContent() {
                 </div>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
 
           {/* Loans List */}
