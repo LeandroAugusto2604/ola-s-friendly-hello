@@ -208,11 +208,12 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
       });
 
       refetch();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating verification:", error);
+      const errorMsg = error?.message || "Erro desconhecido";
       toast({
-        title: "Erro",
-        description: "Não foi possível gerar o link de verificação.",
+        title: "Erro ao gerar verificação",
+        description: `Motivo: ${errorMsg}`,
         variant: "destructive",
       });
     } finally {
