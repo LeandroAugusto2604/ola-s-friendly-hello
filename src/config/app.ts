@@ -8,7 +8,7 @@
  * - Em produção: altere para o domínio da sua VPS (ex: "https://seu-dominio.com.br")
  * - Não inclua barra no final
  */
-export const APP_URL = "https://emprestimo-zl.lovable.app";
+export const APP_URL = "http://emprestimo.devprod.cloud";
 
 /**
  * URL do projeto Supabase
