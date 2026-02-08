@@ -1,28 +1,31 @@
 
 
-# Corrigir URL da Aplicação para VPS
+# Corrigir Erro do Botão WhatsApp
 
-## Problema
-O `APP_URL` em `src/config/app.ts` ainda aponta para `https://emprestimo-zl.lovable.app` ao invés do domínio real da sua VPS.
+## Problema Identificado
+O `APP_URL` em `src/config/app.ts` esta configurado como `http://emprestimo.devprod.cloud`, mas o endereco real da VPS e `http://emprestimo.dev-prod.cloud` (com hifen entre "dev" e "prod").
 
-## Mudança
+Alem disso, o erro "Nao foi possivel gerar o link de verificacao" indica que a insercao na tabela `identity_verifications` pode estar falhando. Isso pode ocorrer se o usuario estiver deslogado ou se houver um problema de sessao.
 
-**Arquivo**: `src/config/app.ts`
+## Mudancas
 
-Atualizar a constante `APP_URL`:
+### 1. Corrigir APP_URL (`src/config/app.ts`)
+- **Antes**: `"http://emprestimo.devprod.cloud"`
+- **Depois**: `"http://emprestimo.dev-prod.cloud"`
 
-- **Antes**: `"https://emprestimo-zl.lovable.app"`
-- **Depois**: `"http://emprestimo.devprod.cloud"`
+### 2. Melhorar tratamento de erro (`src/components/LoansList.tsx`)
+- Adicionar log do erro real no `catch` do `handleSendVerification` para facilitar debug
+- Mostrar mensagem de erro mais descritiva no toast (incluindo o motivo real quando disponivel)
 
-Isso fará com que todos os links de verificação enviados pelo WhatsApp apontem para o endereço correto da sua VPS.
+## Detalhes Tecnicos
 
-## Detalhes Técnicos
+O fluxo do botao WhatsApp e:
+1. Gera um UUID como token
+2. Insere registro na tabela `identity_verifications` (com RLS ativo -- policy verifica se o loan pertence ao usuario logado)
+3. Monta o link `APP_URL/verify/{token}`
+4. Abre o WhatsApp com a mensagem
 
-Apenas uma linha precisa ser alterada no arquivo `src/config/app.ts`. Após a mudança, os links gerados terão o formato:
+A policy de INSERT exige que o `loan_id` pertenca a um cliente do usuario logado. Se houver problema de sessao, o insert falha e o toast mostra "Erro".
 
-```
-http://emprestimo.devprod.cloud/verify/{token}
-```
-
-**Importante**: Após exportar novamente para a VPS, lembre-se de fazer o rebuild (`npm run build`) para que a alteração tenha efeito.
+A correcao principal e o endereco da VPS. A melhoria no log ajudara a diagnosticar problemas futuros.
 
