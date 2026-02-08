@@ -368,7 +368,7 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) => date < startOfDay(new Date())}
+                          
                           initialFocus
                           locale={ptBR}
                           className={cn("p-3 pointer-events-auto")}
