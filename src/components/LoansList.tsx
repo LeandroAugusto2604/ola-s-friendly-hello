@@ -1,4 +1,7 @@
 import { useState } from "react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
 import { APP_URL } from "@/config/app";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,7 +52,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle2, Clock, FileText, Search, Trash2, User, MessageCircle, Copy, Eye, Send, Loader2 } from "lucide-react";
+import { CheckCircle2, Clock, FileDown, FileText, Search, Trash2, User, MessageCircle, Copy, Eye, Send, Loader2 } from "lucide-react";
 
 interface Installment {
   id: string;
@@ -327,6 +330,92 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
     }
   };
 
+  const handleExportClientPdf = (client: Client) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    doc.setFontSize(18);
+    doc.text(client.full_name, pageWidth / 2, 20, { align: "center" });
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`CPF: ${formatCPF(client.cpf)}`, pageWidth / 2, 28, { align: "center" });
+    if (client.phone) {
+      const formattedPhone = client.phone.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+      doc.text(`Tel: ${formattedPhone}`, pageWidth / 2, 34, { align: "center" });
+    }
+
+    let yPos = client.phone ? 44 : 38;
+
+    for (const loan of client.loans) {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      const paidCount = loan.installments.filter((i) => i.paid).length;
+      const totalCount = loan.installments.length;
+      const paidAmount = loan.installments.filter((i) => i.paid).reduce((sum, i) => sum + Number(i.amount), 0);
+      const remainingAmount = Number(loan.amount) - paidAmount;
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      const loanDate = format(new Date(loan.created_at), "dd/MM/yyyy", { locale: ptBR });
+      doc.text(`Empréstimo - ${loanDate}`, 14, yPos);
+      yPos += 6;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      const interestText = loan.interest_rate > 0
+        ? `Valor: ${formatCurrency(Number(loan.original_amount))} + ${loan.interest_rate}% = ${formatCurrency(Number(loan.amount))}`
+        : `Valor: ${formatCurrency(Number(loan.amount))}`;
+      doc.text(interestText, 14, yPos);
+      yPos += 5;
+      doc.text(`Parcelas: ${paidCount}/${totalCount} pagas  |  Pago: ${formatCurrency(paidAmount)}  |  Restante: ${formatCurrency(remainingAmount)}`, 14, yPos);
+      yPos += 6;
+
+      const tableData = loan.installments.map((inst) => [
+        `${inst.installment_number}/${totalCount}`,
+        formatCurrency(Number(inst.amount)),
+        format(new Date(inst.due_date + "T00:00:00"), "dd/MM/yyyy"),
+        inst.paid ? "Pago" : "Pendente",
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [["Parcela", "Valor", "Vencimento", "Status"]],
+        body: tableData,
+        theme: "grid",
+        headStyles: { fillColor: [59, 130, 246], fontSize: 8, fontStyle: "bold" },
+        bodyStyles: { fontSize: 8 },
+        columnStyles: {
+          0: { halign: "center", cellWidth: 25 },
+          1: { halign: "right", cellWidth: 35 },
+          2: { halign: "center", cellWidth: 30 },
+          3: { halign: "center", cellWidth: 25 },
+        },
+        margin: { left: 14, right: 14 },
+        didParseCell: (data) => {
+          if (data.section === "body" && data.column.index === 3) {
+            if (data.cell.raw === "Pago") {
+              data.cell.styles.textColor = [22, 163, 74];
+              data.cell.styles.fontStyle = "bold";
+            } else {
+              data.cell.styles.textColor = [220, 38, 38];
+            }
+          }
+        },
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 10;
+    }
+
+    const safeName = client.full_name.replace(/\s+/g, "-").toLowerCase();
+    doc.save(`emprestimo-${safeName}.pdf`);
+
+    toast({ title: "PDF exportado!", description: `Relatório de ${client.full_name} baixado.` });
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -501,36 +590,46 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                             </p>
                           )}
                         </div>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Excluir Cliente
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Excluir cliente?
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta ação não pode ser desfeita. O cliente{" "}
-                                <strong>{client.full_name}</strong> e todos os seus{" "}
-                                <strong>{client.loans.length} empréstimo(s)</strong> serão
-                                removidos permanentemente.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteClient(client.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleExportClientPdf(client)}
+                          >
+                            <FileDown className="h-4 w-4 mr-1" />
+                            PDF
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                                <Trash2 className="h-4 w-4 mr-1" />
                                 Excluir Cliente
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  Excluir cliente?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta ação não pode ser desfeita. O cliente{" "}
+                                  <strong>{client.full_name}</strong> e todos os seus{" "}
+                                  <strong>{client.loans.length} empréstimo(s)</strong> serão
+                                  removidos permanentemente.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteClient(client.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Excluir Cliente
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </div>
 
                       {client.loans.length === 0 ? (
