@@ -171,13 +171,23 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
       return;
     }
 
+    // Generate token and build URLs BEFORE any async call
+    const token = uuidv4();
+    const verificationLink = `${APP_URL}/verify/${token}`;
+    const cleanPhone = clientPhone.replace(/\D/g, "");
+    const whatsappPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+    const message = encodeURIComponent(
+      `Olá ${clientName}! Para confirmar seu empréstimo, acesse o link abaixo e tire uma foto segurando seu RG:\n\n${verificationLink}`
+    );
+    const whatsappUrl = `https://wa.me/${whatsappPhone}?text=${message}`;
+
+    // Open WhatsApp IMMEDIATELY (synchronous, preserves user gesture)
+    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+
     setSendingVerification(loanId);
 
     try {
-      // Generate unique token
-      const token = uuidv4();
-
-      // Create verification record
+      // Save verification record in the background
       const { error } = await supabase
         .from("identity_verifications")
         .insert({
@@ -188,34 +198,17 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
 
       if (error) throw error;
 
-      // Generate verification link
-      const verificationLink = `${APP_URL}/verify/${token}`;
-
-      // Format phone for WhatsApp (remove non-digits and add country code if needed)
-      const cleanPhone = clientPhone.replace(/\D/g, "");
-      const whatsappPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
-
-      // Create WhatsApp message
-      const message = encodeURIComponent(
-        `Olá ${clientName}! Para confirmar seu empréstimo, acesse o link abaixo e tire uma foto segurando seu RG:\n\n${verificationLink}`
-      );
-
-      // Open WhatsApp in a new tab/window to preserve current page
-      const whatsappUrl = `https://wa.me/${whatsappPhone}?text=${message}`;
-      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-
       toast({
-        title: "Link gerado!",
+        title: "Link enviado!",
         description: "O WhatsApp foi aberto com a mensagem pronta.",
       });
 
       refetch();
     } catch (error: any) {
       console.error("Error creating verification:", error);
-      const errorMsg = error?.message || "Erro desconhecido";
       toast({
-        title: "Erro ao gerar verificação",
-        description: `Motivo: ${errorMsg}`,
+        title: "Erro ao salvar verificação",
+        description: error?.message || "Erro desconhecido",
         variant: "destructive",
       });
     } finally {
