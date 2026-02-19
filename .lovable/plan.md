@@ -1,31 +1,60 @@
 
 
-# Corrigir Erro do Botão WhatsApp
+# Adicionar Campo de Multa Diaria por Atraso
 
-## Problema Identificado
-O `APP_URL` em `src/config/app.ts` esta configurado como `http://emprestimo.devprod.cloud`, mas o endereco real da VPS e `http://emprestimo.dev-prod.cloud` (com hifen entre "dev" e "prod").
-
-Alem disso, o erro "Nao foi possivel gerar o link de verificacao" indica que a insercao na tabela `identity_verifications` pode estar falhando. Isso pode ocorrer se o usuario estiver deslogado ou se houver um problema de sessao.
+## Resumo
+Adicionar um campo no formulario de cadastro de emprestimo para definir um valor cobrado por dia de atraso. Esse valor sera salvo no banco de dados e usado para calcular automaticamente o acrescimo nas parcelas vencidas na tela de listagem.
 
 ## Mudancas
 
-### 1. Corrigir APP_URL (`src/config/app.ts`)
-- **Antes**: `"http://emprestimo.devprod.cloud"`
-- **Depois**: `"http://emprestimo.dev-prod.cloud"`
+### 1. Banco de Dados -- Nova coluna na tabela `loans`
+- Adicionar coluna `daily_late_fee` (numeric, default 0) na tabela `loans`
+- Essa coluna armazena o valor em reais cobrado por cada dia de atraso
 
-### 2. Melhorar tratamento de erro (`src/components/LoansList.tsx`)
-- Adicionar log do erro real no `catch` do `handleSendVerification` para facilitar debug
-- Mostrar mensagem de erro mais descritiva no toast (incluindo o motivo real quando disponivel)
+### 2. Formulario de Cadastro (`src/components/LoanForm.tsx`)
+- Adicionar campo "Multa Diaria por Atraso (R$)" no schema de validacao (valor >= 0)
+- Adicionar o input no formulario, ao lado dos campos de juros e parcelas
+- Incluir o valor de `daily_late_fee` no insert do emprestimo
+
+### 3. Listagem de Emprestimos (`src/components/LoansList.tsx`)
+- Atualizar a interface `Loan` para incluir `daily_late_fee`
+- Para parcelas vencidas (nao pagas e com data anterior a hoje), calcular os dias de atraso e exibir o valor acrescido:
+  - `valor_com_multa = valor_parcela + (dias_atraso * daily_late_fee)`
+- Exibir o valor original e o acrescimo de forma clara na tabela de parcelas
+- Atualizar o resumo de atraso para mostrar o valor total com multa
+
+### 4. Exportacao PDF (`src/components/LoansList.tsx`)
+- Incluir o valor da multa diaria nas informacoes do emprestimo no PDF
+- Mostrar o valor atualizado das parcelas vencidas no PDF
 
 ## Detalhes Tecnicos
 
-O fluxo do botao WhatsApp e:
-1. Gera um UUID como token
-2. Insere registro na tabela `identity_verifications` (com RLS ativo -- policy verifica se o loan pertence ao usuario logado)
-3. Monta o link `APP_URL/verify/{token}`
-4. Abre o WhatsApp com a mensagem
+### Coluna no banco
+```sql
+ALTER TABLE loans ADD COLUMN daily_late_fee numeric NOT NULL DEFAULT 0;
+```
 
-A policy de INSERT exige que o `loan_id` pertenca a um cliente do usuario logado. Se houver problema de sessao, o insert falha e o toast mostra "Erro".
+### Calculo do atraso
+O calculo sera feito no frontend ao exibir as parcelas:
 
-A correcao principal e o endereco da VPS. A melhoria no log ajudara a diagnosticar problemas futuros.
+```text
+Para cada parcela nao paga:
+  Se due_date < hoje:
+    dias_atraso = diferenca em dias entre due_date e hoje
+    valor_exibido = amount + (dias_atraso * daily_late_fee)
+  Senao:
+    valor_exibido = amount (sem acrescimo)
+```
 
+O valor original da parcela no banco **nao sera alterado** -- o acrescimo e calculado dinamicamente na exibicao. Isso garante que, se o cliente pagar a parcela em atraso, o valor correto do dia do pagamento seja considerado.
+
+### Campo no formulario
+- Label: "Multa Diaria por Atraso (R$)"
+- Tipo: number, step 0.01, min 0
+- Default: "0"
+- Descricao: "Valor cobrado por dia de atraso em cada parcela"
+
+## Arquivos Modificados
+- `src/components/LoanForm.tsx` -- novo campo no formulario
+- `src/components/LoansList.tsx` -- calculo e exibicao da multa
+- Migracao SQL -- nova coluna `daily_late_fee`
