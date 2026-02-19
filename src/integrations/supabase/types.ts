@@ -137,6 +137,7 @@ export type Database = {
           amount: number
           client_id: string
           created_at: string
+          daily_late_fee: number
           id: string
           installments_count: number
           interest_rate: number | null
@@ -147,6 +148,7 @@ export type Database = {
           amount: number
           client_id: string
           created_at?: string
+          daily_late_fee?: number
           id?: string
           installments_count: number
           interest_rate?: number | null
@@ -157,6 +159,7 @@ export type Database = {
           amount?: number
           client_id?: string
           created_at?: string
+          daily_late_fee?: number
           id?: string
           installments_count?: number
           interest_rate?: number | null

@@ -51,7 +51,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, differenceInCalendarDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CheckCircle2, Clock, FileDown, FileText, Search, Trash2, User, MessageCircle, Copy, Eye, Send, Loader2 } from "lucide-react";
 
@@ -78,6 +78,7 @@ interface Loan {
   amount: number;
   original_amount: number;
   interest_rate: number;
+  daily_late_fee: number;
   installments_count: number;
   created_at: string;
   installments: Installment[];
@@ -374,14 +375,31 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
       doc.text(interestText, 14, yPos);
       yPos += 5;
       doc.text(`Parcelas: ${paidCount}/${totalCount} pagas  |  Pago: ${formatCurrency(paidAmount)}  |  Restante: ${formatCurrency(remainingAmount)}`, 14, yPos);
-      yPos += 6;
+      yPos += 5;
+      if (Number(loan.daily_late_fee) > 0) {
+        doc.text(`Multa diária por atraso: ${formatCurrency(Number(loan.daily_late_fee))}/dia`, 14, yPos);
+        yPos += 5;
+      }
+      yPos += 1;
 
-      const tableData = loan.installments.map((inst) => [
-        `${inst.installment_number}/${totalCount}`,
-        formatCurrency(Number(inst.amount)),
-        format(new Date(inst.due_date + "T00:00:00"), "dd/MM/yyyy"),
-        inst.paid ? "Pago" : "Pendente",
-      ]);
+      const todayPdf = new Date();
+      todayPdf.setHours(0, 0, 0, 0);
+      const tableData = loan.installments.map((inst) => {
+        const dueDate = new Date(inst.due_date + "T00:00:00");
+        const isOverdue = !inst.paid && dueDate < todayPdf;
+        const daysLate = isOverdue ? differenceInCalendarDays(todayPdf, dueDate) : 0;
+        const lateFee = daysLate * Number(loan.daily_late_fee || 0);
+        const displayAmt = Number(inst.amount) + lateFee;
+        const valorText = lateFee > 0
+          ? `${formatCurrency(displayAmt)} (+${daysLate}d)`
+          : formatCurrency(Number(inst.amount));
+        return [
+          `${inst.installment_number}/${totalCount}`,
+          valorText,
+          format(dueDate, "dd/MM/yyyy"),
+          inst.paid ? "Pago" : isOverdue ? "Vencida" : "Pendente",
+        ];
+      });
 
       autoTable(doc, {
         startY: yPos,
@@ -762,16 +780,27 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                   <div className="rounded-lg bg-destructive/20 p-2">
                                     <Clock className="h-4 w-4 text-destructive" />
                                   </div>
-                                  <p className="text-sm font-medium text-destructive">
-                                    {overdueInstallments.length} parcela(s) em atraso
-                                    totalizando{" "}
-                                    {formatCurrency(
-                                      overdueInstallments.reduce(
-                                        (sum, i) => sum + Number(i.amount),
-                                        0
-                                      )
+                                  <div className="text-sm font-medium text-destructive">
+                                    <p>
+                                      {overdueInstallments.length} parcela(s) em atraso
+                                      totalizando{" "}
+                                      {formatCurrency(
+                                        overdueInstallments.reduce(
+                                          (sum, i) => {
+                                            const daysLate = differenceInCalendarDays(today, new Date(i.due_date + "T00:00:00"));
+                                            const lateFee = daysLate > 0 ? daysLate * Number(loan.daily_late_fee || 0) : 0;
+                                            return sum + Number(i.amount) + lateFee;
+                                          },
+                                          0
+                                        )
+                                      )}
+                                    </p>
+                                    {Number(loan.daily_late_fee) > 0 && (
+                                      <p className="text-xs mt-1 opacity-80">
+                                        Multa diária: {formatCurrency(Number(loan.daily_late_fee))}/dia
+                                      </p>
                                     )}
-                                  </p>
+                                  </div>
                                 </div>
                               )}
 
@@ -893,6 +922,9 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                     todayCheck.setHours(0, 0, 0, 0);
                                     const dueDateCheck = new Date(installment.due_date + "T00:00:00");
                                     const isOverdue = !installment.paid && dueDateCheck < todayCheck;
+                                    const daysLate = isOverdue ? differenceInCalendarDays(todayCheck, dueDateCheck) : 0;
+                                    const lateFee = daysLate * Number(loan.daily_late_fee || 0);
+                                    const displayAmount = Number(installment.amount) + lateFee;
 
                                     return (
                                       <TableRow key={installment.id}>
@@ -901,7 +933,21 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                           {loan.installments_count}
                                         </TableCell>
                                         <TableCell>
-                                          {formatCurrency(Number(installment.amount))}
+                                          {isOverdue && lateFee > 0 ? (
+                                            <div>
+                                              <span className="line-through text-muted-foreground text-xs">
+                                                {formatCurrency(Number(installment.amount))}
+                                              </span>
+                                              <span className="block font-semibold text-destructive">
+                                                {formatCurrency(displayAmount)}
+                                              </span>
+                                              <span className="text-xs text-muted-foreground">
+                                                +{daysLate}d × {formatCurrency(Number(loan.daily_late_fee))}
+                                              </span>
+                                            </div>
+                                          ) : (
+                                            formatCurrency(Number(installment.amount))
+                                          )}
                                         </TableCell>
                                         <TableCell>
                                           {format(

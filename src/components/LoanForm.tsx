@@ -36,6 +36,7 @@ const formSchema = z.object({
   amount: z.string().refine((val) => parseFloat(val) > 0, "Valor deve ser maior que 0"),
   interestRate: z.string().refine((val) => parseFloat(val) >= 0 && parseFloat(val) <= 100, "Juros deve ser entre 0% e 100%"),
   installmentsCount: z.string().refine((val) => parseInt(val) >= 1 && parseInt(val) <= 48, "Parcelas deve ser entre 1 e 48"),
+  dailyLateFee: z.string().refine((val) => parseFloat(val) >= 0, "Valor deve ser >= 0"),
   firstDueDate: z.date({
     required_error: "Selecione a data do primeiro vencimento",
   }),
@@ -62,6 +63,7 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
       amount: "",
       interestRate: "0",
       installmentsCount: "12",
+      dailyLateFee: "0",
       firstDueDate: undefined,
     },
   });
@@ -137,6 +139,8 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
       // Calculate total amount with interest
       const totalWithInterest = amount * (1 + interestRate / 100);
 
+      const dailyLateFee = parseFloat(data.dailyLateFee);
+
       const { data: loan, error: loanError } = await supabase
         .from("loans")
         .insert({
@@ -145,7 +149,8 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
           amount: totalWithInterest,
           interest_rate: interestRate,
           installments_count: installmentsCount,
-        })
+          daily_late_fee: dailyLateFee,
+        } as any)
         .select()
         .single();
 
@@ -333,6 +338,29 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
                         {...field}
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="dailyLateFee"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Multa Diária por Atraso (R$)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Valor cobrado por dia de atraso em cada parcela
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
