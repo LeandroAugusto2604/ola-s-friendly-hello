@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { v4 as uuidv4 } from "uuid";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -173,7 +174,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
 
     try {
       // Generate unique token
-      const token = crypto.randomUUID();
+      const token = uuidv4();
 
       // Create verification record
       const { error } = await supabase
