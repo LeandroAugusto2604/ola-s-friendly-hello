@@ -1,0 +1,1 @@
+ALTER TABLE public.loans ADD COLUMN daily_late_fee numeric NOT NULL DEFAULT 0;
