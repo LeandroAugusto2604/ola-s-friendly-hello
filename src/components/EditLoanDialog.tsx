@@ -42,6 +42,15 @@ const editLoanSchema = z.object({
 
 type EditLoanFormData = z.infer<typeof editLoanSchema>;
 
+interface InstallmentData {
+  id: string;
+  due_date: string;
+  installment_number: number;
+  amount: number;
+  paid: boolean;
+  paid_at: string | null;
+}
+
 interface LoanData {
   id: string;
   original_amount: number;
@@ -49,11 +58,7 @@ interface LoanData {
   interest_rate: number;
   daily_late_fee: number;
   installments_count: number;
-  installments: {
-    id: string;
-    due_date: string;
-    installment_number: number;
-  }[];
+  installments: InstallmentData[];
 }
 
 interface EditLoanDialogProps {
@@ -66,10 +71,15 @@ interface EditLoanDialogProps {
 export function EditLoanDialog({ loan, open, onOpenChange, onSuccess }: EditLoanDialogProps) {
   const [saving, setSaving] = useState(false);
 
-  // Get first installment due date
-  const firstInstallment = loan.installments.find((i) => i.installment_number === 1);
-  const firstDueDate = firstInstallment
-    ? new Date(firstInstallment.due_date + "T00:00:00")
+  const paidInstallments = loan.installments.filter((i) => i.paid);
+  const paidTotal = paidInstallments.reduce((sum, i) => sum + Number(i.amount), 0);
+  const paidCount = paidInstallments.length;
+
+  const firstUnpaid = loan.installments
+    .filter((i) => !i.paid)
+    .sort((a, b) => a.installment_number - b.installment_number)[0];
+  const firstUnpaidDate = firstUnpaid
+    ? new Date(firstUnpaid.due_date + "T00:00:00")
     : new Date();
 
   const form = useForm<EditLoanFormData>({
@@ -79,24 +89,26 @@ export function EditLoanDialog({ loan, open, onOpenChange, onSuccess }: EditLoan
       interestRate: String(loan.interest_rate || 0),
       installmentsCount: String(loan.installments_count),
       dailyLateFee: String(loan.daily_late_fee || 0),
-      firstDueDate,
+      firstDueDate: firstUnpaidDate,
     },
   });
 
   useEffect(() => {
     if (open) {
-      const fdi = loan.installments.find((i) => i.installment_number === 1);
+      const fu = loan.installments
+        .filter((i) => !i.paid)
+        .sort((a, b) => a.installment_number - b.installment_number)[0];
       form.reset({
         amount: String(loan.original_amount),
         interestRate: String(loan.interest_rate || 0),
         installmentsCount: String(loan.installments_count),
         dailyLateFee: String(loan.daily_late_fee || 0),
-        firstDueDate: fdi ? new Date(fdi.due_date + "T00:00:00") : new Date(),
+        firstDueDate: fu ? new Date(fu.due_date + "T00:00:00") : new Date(),
       });
     }
   }, [open, loan]);
 
-  // Live preview of recalculated values
+  // Live preview
   const watchedAmount = form.watch("amount");
   const watchedInterest = form.watch("interestRate");
   const watchedInstallments = form.watch("installmentsCount");
@@ -107,10 +119,10 @@ export function EditLoanDialog({ loan, open, onOpenChange, onSuccess }: EditLoan
     return amt * (1 + rate / 100);
   })();
 
-  const previewInstallmentValue = (() => {
-    const count = parseInt(watchedInstallments) || 1;
-    return previewTotal / count;
-  })();
+  const newTotalCount = parseInt(watchedInstallments) || 1;
+  const remainingCount = Math.max(newTotalCount - paidCount, 1);
+  const remainingAmount = Math.max(previewTotal - paidTotal, 0);
+  const previewNewInstallmentValue = remainingAmount / remainingCount;
 
   const onSubmit = async (data: EditLoanFormData) => {
     setSaving(true);
@@ -120,6 +132,20 @@ export function EditLoanDialog({ loan, open, onOpenChange, onSuccess }: EditLoan
       const installmentsCount = parseInt(data.installmentsCount);
       const dailyLateFee = parseFloat(data.dailyLateFee);
       const totalWithInterest = originalAmount * (1 + interestRate / 100);
+
+      if (installmentsCount < paidCount) {
+        toast({
+          title: "Erro",
+          description: `Já existem ${paidCount} parcela(s) paga(s). O total de parcelas deve ser pelo menos ${paidCount}.`,
+          variant: "destructive",
+        });
+        setSaving(false);
+        return;
+      }
+
+      const unpaidCount = installmentsCount - paidCount;
+      const unpaidTotal = Math.max(totalWithInterest - paidTotal, 0);
+      const newInstallmentAmount = unpaidCount > 0 ? unpaidTotal / unpaidCount : 0;
 
       // 1. Update the loan
       const { error: loanError } = await supabase
@@ -135,38 +161,41 @@ export function EditLoanDialog({ loan, open, onOpenChange, onSuccess }: EditLoan
 
       if (loanError) throw loanError;
 
-      // 2. Delete old installments
-      const { error: deleteError } = await supabase
-        .from("installments")
-        .delete()
-        .eq("loan_id", loan.id);
+      // 2. Delete only UNPAID installments
+      const unpaidIds = loan.installments.filter((i) => !i.paid).map((i) => i.id);
+      if (unpaidIds.length > 0) {
+        const { error: deleteError } = await supabase
+          .from("installments")
+          .delete()
+          .in("id", unpaidIds);
 
-      if (deleteError) throw deleteError;
+        if (deleteError) throw deleteError;
+      }
 
-      // 3. Generate new installments
-      const installmentAmount = totalWithInterest / installmentsCount;
-      const newFirstDueDate = data.firstDueDate;
+      // 3. Generate new unpaid installments
+      if (unpaidCount > 0) {
+        const newFirstDueDate = data.firstDueDate;
+        const installments = Array.from({ length: unpaidCount }, (_, i) => {
+          const dueDate = new Date(newFirstDueDate);
+          dueDate.setMonth(dueDate.getMonth() + i);
+          return {
+            loan_id: loan.id,
+            installment_number: paidCount + i + 1,
+            amount: parseFloat(newInstallmentAmount.toFixed(2)),
+            due_date: dueDate.toISOString().split("T")[0],
+          };
+        });
 
-      const installments = Array.from({ length: installmentsCount }, (_, i) => {
-        const dueDate = new Date(newFirstDueDate);
-        dueDate.setMonth(dueDate.getMonth() + i);
-        return {
-          loan_id: loan.id,
-          installment_number: i + 1,
-          amount: parseFloat(installmentAmount.toFixed(2)),
-          due_date: dueDate.toISOString().split("T")[0],
-        };
-      });
+        const { error: installmentsError } = await supabase
+          .from("installments")
+          .insert(installments);
 
-      const { error: installmentsError } = await supabase
-        .from("installments")
-        .insert(installments);
-
-      if (installmentsError) throw installmentsError;
+        if (installmentsError) throw installmentsError;
+      }
 
       toast({
         title: "Empréstimo atualizado!",
-        description: `${installmentsCount}x de R$ ${installmentAmount.toFixed(2)} = R$ ${totalWithInterest.toFixed(2)}`,
+        description: `${paidCount} parcela(s) paga(s) mantidas. ${unpaidCount} nova(s) parcela(s) de R$ ${newInstallmentAmount.toFixed(2)}`,
       });
       onOpenChange(false);
       onSuccess();
@@ -220,9 +249,9 @@ export function EditLoanDialog({ loan, open, onOpenChange, onSuccess }: EditLoan
               name="installmentsCount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Quantidade de Parcelas</FormLabel>
+                  <FormLabel>Quantidade Total de Parcelas</FormLabel>
                   <FormControl>
-                    <Input type="number" min="1" max="48" {...field} />
+                    <Input type="number" min={paidCount || 1} max="48" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -246,7 +275,7 @@ export function EditLoanDialog({ loan, open, onOpenChange, onSuccess }: EditLoan
               name="firstDueDate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Data do Primeiro Vencimento</FormLabel>
+                  <FormLabel>Vencimento da Próxima Parcela</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -282,22 +311,36 @@ export function EditLoanDialog({ loan, open, onOpenChange, onSuccess }: EditLoan
             {/* Live preview */}
             <div className="rounded-lg border border-border bg-muted/50 p-3 text-sm space-y-1">
               <p className="text-muted-foreground">
-                <strong>Valor total:</strong>{" "}
-                <span className="text-foreground">
-                  R$ {previewTotal.toFixed(2)}
-                </span>
+                <strong>Valor total com juros:</strong>{" "}
+                <span className="text-foreground">R$ {previewTotal.toFixed(2)}</span>
               </p>
+              {paidCount > 0 && (
+                <>
+                  <p className="text-muted-foreground">
+                    <strong>Já pago:</strong>{" "}
+                    <span className="text-foreground">
+                      {paidCount} parcela(s) = R$ {paidTotal.toFixed(2)}
+                    </span>
+                  </p>
+                  <p className="text-muted-foreground">
+                    <strong>Restante:</strong>{" "}
+                    <span className="text-foreground">R$ {remainingAmount.toFixed(2)}</span>
+                  </p>
+                </>
+              )}
               <p className="text-muted-foreground">
-                <strong>Parcela:</strong>{" "}
+                <strong>Novas parcelas:</strong>{" "}
                 <span className="text-foreground">
-                  {watchedInstallments}x de R$ {previewInstallmentValue.toFixed(2)}
+                  {remainingCount}x de R$ {previewNewInstallmentValue.toFixed(2)}
                 </span>
               </p>
             </div>
 
-            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-              ⚠️ Ao salvar, todas as parcelas serão recriadas e o histórico de pagamentos será perdido.
-            </div>
+            {paidCount > 0 && (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-primary">
+                ✅ {paidCount} parcela(s) já paga(s) serão mantidas. Apenas as parcelas pendentes serão recalculadas.
+              </div>
+            )}
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
