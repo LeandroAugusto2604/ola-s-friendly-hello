@@ -15,6 +15,12 @@ interface Installment {
   paid: boolean;
 }
 
+interface InterestPayment {
+  amount: number;
+  paid_at: string;
+  notes: string | null;
+}
+
 interface Loan {
   id: string;
   amount: number;
@@ -23,6 +29,7 @@ interface Loan {
   installments_count: number;
   created_at: string;
   installments: Installment[];
+  interest_payments: InterestPayment[];
 }
 
 interface Client {
@@ -69,7 +76,17 @@ export function ExportPdfButton() {
                 .eq("loan_id", loan.id)
                 .order("installment_number", { ascending: true });
 
-              return { ...loan, installments: installmentsData || [] };
+              const { data: interestData } = await supabase
+                .from("interest_payments")
+                .select("*")
+                .eq("loan_id", loan.id)
+                .order("paid_at", { ascending: true });
+
+              return {
+                ...loan,
+                installments: installmentsData || [],
+                interest_payments: interestData || [],
+              };
             })
           );
 
@@ -147,7 +164,14 @@ export function ExportPdfButton() {
           const paidAmount = loan.installments
             .filter((i) => i.paid)
             .reduce((sum, i) => sum + i.amount, 0);
-          const remainingAmount = loan.amount - paidAmount;
+          const remainingAmount = loan.original_amount - paidAmount;
+
+          // Interest calculations
+          const totalInterest = loan.interest_rate > 0
+            ? (loan.original_amount * (loan.interest_rate / 100))
+            : 0;
+          const paidInterest = loan.interest_payments.reduce((sum, p) => sum + p.amount, 0);
+          const remainingInterest = Math.max(totalInterest - paidInterest, 0);
 
           // Loan summary
           doc.setFontSize(10);
@@ -159,18 +183,29 @@ export function ExportPdfButton() {
           doc.setFont("helvetica", "normal");
           doc.setFontSize(9);
 
-          const interestText =
-            loan.interest_rate > 0
-              ? `Valor original: ${formatCurrency(loan.original_amount)} + ${loan.interest_rate}% juros = ${formatCurrency(loan.amount)}`
-              : `Valor: ${formatCurrency(loan.amount)}`;
-          doc.text(interestText, 14, yPos);
+          // Principal info
+          doc.text(`Valor Principal: ${formatCurrency(loan.original_amount)}`, 14, yPos);
           yPos += 5;
           doc.text(
-            `Parcelas: ${paidCount}/${totalCount} pagas  |  Pago: ${formatCurrency(paidAmount)}  |  Restante: ${formatCurrency(remainingAmount)}`,
+            `Parcelas (Principal): ${paidCount}/${totalCount} pagas  |  Pago: ${formatCurrency(paidAmount)}  |  Restante: ${formatCurrency(Math.max(remainingAmount, 0))}`,
             14,
             yPos
           );
-          yPos += 6;
+          yPos += 5;
+
+          // Interest info
+          if (loan.interest_rate > 0) {
+            doc.setFont("helvetica", "bold");
+            doc.text(
+              `Juros (${loan.interest_rate}%): Total ${formatCurrency(totalInterest)}  |  Pago: ${formatCurrency(paidInterest)}  |  Restante: ${formatCurrency(remainingInterest)}`,
+              14,
+              yPos
+            );
+            doc.setFont("helvetica", "normal");
+            yPos += 6;
+          } else {
+            yPos += 1;
+          }
 
           // Installments table
           const tableData = loan.installments.map((inst) => [
@@ -210,7 +245,50 @@ export function ExportPdfButton() {
             },
           });
 
-          yPos = (doc as any).lastAutoTable.finalY + 10;
+          yPos = (doc as any).lastAutoTable.finalY + 4;
+
+          // Interest payments history table
+          if (loan.interest_payments.length > 0) {
+            if (yPos > 250) {
+              doc.addPage();
+              yPos = 20;
+            }
+
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "bold");
+            doc.text("Histórico de Pagamentos de Juros", 14, yPos);
+            yPos += 4;
+
+            const interestTableData = loan.interest_payments.map((p) => [
+              format(new Date(p.paid_at), "dd/MM/yyyy", { locale: ptBR }),
+              formatCurrency(p.amount),
+              p.notes || "-",
+            ]);
+
+            autoTable(doc, {
+              startY: yPos,
+              head: [["Data", "Valor", "Observação"]],
+              body: interestTableData,
+              theme: "grid",
+              headStyles: {
+                fillColor: [234, 179, 8],
+                textColor: [0, 0, 0],
+                fontSize: 8,
+                fontStyle: "bold",
+              },
+              bodyStyles: { fontSize: 8 },
+              columnStyles: {
+                0: { halign: "center", cellWidth: 30 },
+                1: { halign: "right", cellWidth: 35 },
+                2: { cellWidth: 80 },
+              },
+              margin: { left: 14, right: 14 },
+            });
+
+            yPos = (doc as any).lastAutoTable.finalY + 10;
+          } else {
+            yPos += 6;
+          }
         }
 
         // Separator line between clients
