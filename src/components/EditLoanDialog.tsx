@@ -311,7 +311,7 @@ export function EditLoanDialog({ loan, open, onOpenChange, onSuccess }: EditLoan
             {/* Live preview */}
             <div className="rounded-lg border border-border bg-muted/50 p-3 text-sm space-y-1">
               <p className="text-muted-foreground">
-                <strong>Valor total com juros:</strong>{" "}
+                <strong>Valor principal (parcelas):</strong>{" "}
                 <span className="text-foreground">R$ {previewTotal.toFixed(2)}</span>
               </p>
               {paidCount > 0 && (
