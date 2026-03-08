@@ -1080,6 +1080,15 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
           onSuccess={() => { refetch(); onDataChange?.(); }}
         />
       )}
+      {interestPaymentLoan && (
+        <InterestPaymentDialog
+          loanId={interestPaymentLoan.loanId}
+          remainingInterest={interestPaymentLoan.remaining}
+          open={!!interestPaymentLoan}
+          onOpenChange={(open) => { if (!open) setInterestPaymentLoan(null); }}
+          onSuccess={() => { refetch(); onDataChange?.(); }}
+        />
+      )}
     </Card>
   );
 }
