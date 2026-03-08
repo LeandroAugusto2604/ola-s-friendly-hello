@@ -115,8 +115,7 @@ export function EditLoanDialog({ loan, open, onOpenChange, onSuccess }: EditLoan
 
   const previewTotal = (() => {
     const amt = parseFloat(watchedAmount) || 0;
-    const rate = parseFloat(watchedInterest) || 0;
-    return amt * (1 + rate / 100);
+    return amt;
   })();
 
   const newTotalCount = parseInt(watchedInstallments) || 1;
@@ -131,6 +130,7 @@ export function EditLoanDialog({ loan, open, onOpenChange, onSuccess }: EditLoan
       const interestRate = parseFloat(data.interestRate);
       const installmentsCount = parseInt(data.installmentsCount);
       const dailyLateFee = parseFloat(data.dailyLateFee);
+      const totalForInstallments = originalAmount; // Installments based on principal only
       const totalWithInterest = originalAmount * (1 + interestRate / 100);
 
       if (installmentsCount < paidCount) {
@@ -144,7 +144,7 @@ export function EditLoanDialog({ loan, open, onOpenChange, onSuccess }: EditLoan
       }
 
       const unpaidCount = installmentsCount - paidCount;
-      const unpaidTotal = Math.max(totalWithInterest - paidTotal, 0);
+      const unpaidTotal = Math.max(totalForInstallments - paidTotal, 0);
       const newInstallmentAmount = unpaidCount > 0 ? unpaidTotal / unpaidCount : 0;
 
       // 1. Update the loan
@@ -311,7 +311,7 @@ export function EditLoanDialog({ loan, open, onOpenChange, onSuccess }: EditLoan
             {/* Live preview */}
             <div className="rounded-lg border border-border bg-muted/50 p-3 text-sm space-y-1">
               <p className="text-muted-foreground">
-                <strong>Valor total com juros:</strong>{" "}
+                <strong>Valor principal (parcelas):</strong>{" "}
                 <span className="text-foreground">R$ {previewTotal.toFixed(2)}</span>
               </p>
               {paidCount > 0 && (
