@@ -15,6 +15,12 @@ interface Installment {
   paid: boolean;
 }
 
+interface InterestPayment {
+  amount: number;
+  paid_at: string;
+  notes: string | null;
+}
+
 interface Loan {
   id: string;
   amount: number;
@@ -23,6 +29,7 @@ interface Loan {
   installments_count: number;
   created_at: string;
   installments: Installment[];
+  interest_payments: InterestPayment[];
 }
 
 interface Client {
