@@ -374,7 +374,14 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
       const paidCount = loan.installments.filter((i) => i.paid).length;
       const totalCount = loan.installments.length;
       const paidAmount = loan.installments.filter((i) => i.paid).reduce((sum, i) => sum + Number(i.amount), 0);
-      const remainingAmount = Number(loan.amount) - paidAmount;
+      const remainingAmount = Math.max(Number(loan.original_amount) - paidAmount, 0);
+
+      // Interest calculations
+      const totalInterest = Number(loan.interest_rate) > 0
+        ? Number(loan.original_amount) * (Number(loan.interest_rate) / 100)
+        : 0;
+      const paidInterest = loan.interest_payments.reduce((sum, p) => sum + Number(p.amount), 0);
+      const remainingInterest = Math.max(totalInterest - paidInterest, 0);
 
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
@@ -384,12 +391,13 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
-      const interestText = loan.interest_rate > 0
-        ? `Valor: ${formatCurrency(Number(loan.original_amount))} + ${loan.interest_rate}% = ${formatCurrency(Number(loan.amount))}`
-        : `Valor: ${formatCurrency(Number(loan.amount))}`;
-      doc.text(interestText, 14, yPos);
+      doc.text(`Valor Principal: ${formatCurrency(Number(loan.original_amount))}`, 14, yPos);
       yPos += 5;
-      doc.text(`Parcelas: ${paidCount}/${totalCount} pagas  |  Pago: ${formatCurrency(paidAmount)}  |  Restante: ${formatCurrency(remainingAmount)}`, 14, yPos);
+      doc.text(
+        `Parcelas: ${paidCount}/${totalCount} pagas  |  Pago: ${formatCurrency(paidAmount)}  |  Restante: ${formatCurrency(remainingAmount)}`,
+        14,
+        yPos
+      );
       yPos += 5;
       if (Number(loan.daily_late_fee) > 0) {
         doc.text(`Multa diária por atraso: ${formatCurrency(Number(loan.daily_late_fee))}/dia`, 14, yPos);
@@ -413,21 +421,25 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
           valorText,
           format(dueDate, "dd/MM/yyyy"),
           inst.paid ? "Pago" : isOverdue ? "Vencida" : "Pendente",
+          inst.paid && inst.paid_at
+            ? format(new Date(inst.paid_at), "dd/MM/yyyy", { locale: ptBR })
+            : "-",
         ];
       });
 
       autoTable(doc, {
         startY: yPos,
-        head: [["Parcela", "Valor", "Vencimento", "Status"]],
+        head: [["Parcela", "Valor", "Vencimento", "Status", "Pago em"]],
         body: tableData,
         theme: "grid",
         headStyles: { fillColor: [59, 130, 246], fontSize: 8, fontStyle: "bold" },
         bodyStyles: { fontSize: 8 },
         columnStyles: {
-          0: { halign: "center", cellWidth: 25 },
-          1: { halign: "right", cellWidth: 35 },
-          2: { halign: "center", cellWidth: 30 },
-          3: { halign: "center", cellWidth: 25 },
+          0: { halign: "center", cellWidth: 22 },
+          1: { halign: "right", cellWidth: 30 },
+          2: { halign: "center", cellWidth: 28 },
+          3: { halign: "center", cellWidth: 22 },
+          4: { halign: "center", cellWidth: 28 },
         },
         margin: { left: 14, right: 14 },
         didParseCell: (data) => {
@@ -442,7 +454,65 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
         },
       });
 
-      yPos = (doc as any).lastAutoTable.finalY + 10;
+      yPos = (doc as any).lastAutoTable.finalY + 6;
+
+      // Interest section
+      if (Number(loan.interest_rate) > 0) {
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text(`Juros (${loan.interest_rate}%)`, 14, yPos);
+        yPos += 5;
+
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        doc.text(
+          `Total: ${formatCurrency(totalInterest)}  |  Pago: ${formatCurrency(paidInterest)}  |  Restante: ${formatCurrency(remainingInterest)}`,
+          14,
+          yPos
+        );
+        yPos += 5;
+
+        if (loan.interest_payments.length > 0) {
+          const interestTableData = loan.interest_payments.map((p) => [
+            format(new Date(p.paid_at), "dd/MM/yyyy", { locale: ptBR }),
+            formatCurrency(Number(p.amount)),
+            p.notes || "-",
+          ]);
+
+          autoTable(doc, {
+            startY: yPos,
+            head: [["Data Pagamento", "Valor Pago", "Observação"]],
+            body: interestTableData,
+            theme: "grid",
+            headStyles: {
+              fillColor: [234, 179, 8],
+              textColor: [0, 0, 0],
+              fontSize: 8,
+              fontStyle: "bold",
+            },
+            bodyStyles: { fontSize: 8 },
+            columnStyles: {
+              0: { halign: "center", cellWidth: 30 },
+              1: { halign: "right", cellWidth: 35 },
+              2: { cellWidth: 80 },
+            },
+            margin: { left: 14, right: 14 },
+          });
+
+          yPos = (doc as any).lastAutoTable.finalY + 10;
+        } else {
+          doc.setFontSize(8);
+          doc.text("Nenhum pagamento de juros registrado.", 14, yPos);
+          yPos += 8;
+        }
+      } else {
+        yPos += 4;
+      }
     }
 
     const safeName = client.full_name.replace(/\s+/g, "-").toLowerCase();
