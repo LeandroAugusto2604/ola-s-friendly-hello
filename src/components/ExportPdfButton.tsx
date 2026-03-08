@@ -76,7 +76,17 @@ export function ExportPdfButton() {
                 .eq("loan_id", loan.id)
                 .order("installment_number", { ascending: true });
 
-              return { ...loan, installments: installmentsData || [] };
+              const { data: interestData } = await supabase
+                .from("interest_payments")
+                .select("*")
+                .eq("loan_id", loan.id)
+                .order("paid_at", { ascending: true });
+
+              return {
+                ...loan,
+                installments: installmentsData || [],
+                interest_payments: interestData || [],
+              };
             })
           );
 
