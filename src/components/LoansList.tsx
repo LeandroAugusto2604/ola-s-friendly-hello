@@ -76,6 +76,13 @@ interface IdentityVerification {
   verified_at: string | null;
 }
 
+interface InterestPayment {
+  id: string;
+  amount: number;
+  paid_at: string;
+  notes: string | null;
+}
+
 interface Loan {
   id: string;
   amount: number;
