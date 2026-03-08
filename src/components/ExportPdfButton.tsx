@@ -207,17 +207,20 @@ export function ExportPdfButton() {
             yPos += 1;
           }
 
-          // Installments table
+          // Installments table - with paid_at date
           const tableData = loan.installments.map((inst) => [
             `${inst.installment_number}/${totalCount}`,
             formatCurrency(inst.amount),
             format(new Date(inst.due_date + "T00:00:00"), "dd/MM/yyyy"),
             inst.paid ? "Pago" : "Pendente",
+            inst.paid && inst.paid_at
+              ? format(new Date(inst.paid_at), "dd/MM/yyyy", { locale: ptBR })
+              : "-",
           ]);
 
           autoTable(doc, {
             startY: yPos,
-            head: [["Parcela", "Valor", "Vencimento", "Status"]],
+            head: [["Parcela", "Valor", "Vencimento", "Status", "Pago em"]],
             body: tableData,
             theme: "grid",
             headStyles: {
@@ -227,10 +230,11 @@ export function ExportPdfButton() {
             },
             bodyStyles: { fontSize: 8 },
             columnStyles: {
-              0: { halign: "center", cellWidth: 25 },
-              1: { halign: "right", cellWidth: 35 },
-              2: { halign: "center", cellWidth: 30 },
-              3: { halign: "center", cellWidth: 25 },
+              0: { halign: "center", cellWidth: 22 },
+              1: { halign: "right", cellWidth: 30 },
+              2: { halign: "center", cellWidth: 28 },
+              3: { halign: "center", cellWidth: 22 },
+              4: { halign: "center", cellWidth: 28 },
             },
             margin: { left: 14, right: 14 },
             didParseCell: (data) => {
@@ -245,49 +249,64 @@ export function ExportPdfButton() {
             },
           });
 
-          yPos = (doc as any).lastAutoTable.finalY + 4;
+          yPos = (doc as any).lastAutoTable.finalY + 6;
 
-          // Interest payments history table
-          if (loan.interest_payments.length > 0) {
+          // Interest section
+          if (loan.interest_rate > 0) {
             if (yPos > 250) {
               doc.addPage();
               yPos = 20;
             }
 
-            doc.setFontSize(9);
+            doc.setFontSize(10);
             doc.setFont("helvetica", "bold");
-            doc.text("Histórico de Pagamentos de Juros", 14, yPos);
-            yPos += 4;
+            doc.text(`Juros (${loan.interest_rate}%)`, 14, yPos);
+            yPos += 5;
 
-            const interestTableData = loan.interest_payments.map((p) => [
-              format(new Date(p.paid_at), "dd/MM/yyyy", { locale: ptBR }),
-              formatCurrency(p.amount),
-              p.notes || "-",
-            ]);
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "normal");
+            doc.text(
+              `Total: ${formatCurrency(totalInterest)}  |  Pago: ${formatCurrency(paidInterest)}  |  Restante: ${formatCurrency(remainingInterest)}`,
+              14,
+              yPos
+            );
+            yPos += 5;
 
-            autoTable(doc, {
-              startY: yPos,
-              head: [["Data", "Valor", "Observação"]],
-              body: interestTableData,
-              theme: "grid",
-              headStyles: {
-                fillColor: [234, 179, 8],
-                textColor: [0, 0, 0],
-                fontSize: 8,
-                fontStyle: "bold",
-              },
-              bodyStyles: { fontSize: 8 },
-              columnStyles: {
-                0: { halign: "center", cellWidth: 30 },
-                1: { halign: "right", cellWidth: 35 },
-                2: { cellWidth: 80 },
-              },
-              margin: { left: 14, right: 14 },
-            });
+            if (loan.interest_payments.length > 0) {
+              const interestTableData = loan.interest_payments.map((p) => [
+                format(new Date(p.paid_at), "dd/MM/yyyy", { locale: ptBR }),
+                formatCurrency(p.amount),
+                p.notes || "-",
+              ]);
 
-            yPos = (doc as any).lastAutoTable.finalY + 10;
+              autoTable(doc, {
+                startY: yPos,
+                head: [["Data Pagamento", "Valor Pago", "Observação"]],
+                body: interestTableData,
+                theme: "grid",
+                headStyles: {
+                  fillColor: [234, 179, 8],
+                  textColor: [0, 0, 0],
+                  fontSize: 8,
+                  fontStyle: "bold",
+                },
+                bodyStyles: { fontSize: 8 },
+                columnStyles: {
+                  0: { halign: "center", cellWidth: 30 },
+                  1: { halign: "right", cellWidth: 35 },
+                  2: { cellWidth: 80 },
+                },
+                margin: { left: 14, right: 14 },
+              });
+
+              yPos = (doc as any).lastAutoTable.finalY + 10;
+            } else {
+              doc.setFontSize(8);
+              doc.text("Nenhum pagamento de juros registrado.", 14, yPos);
+              yPos += 8;
+            }
           } else {
-            yPos += 6;
+            yPos += 4;
           }
         }
 
