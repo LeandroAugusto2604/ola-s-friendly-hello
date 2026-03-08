@@ -738,6 +738,14 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                       Pago: {formatCurrency(totalPaid)}
                                     </p>
                                   </div>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="ml-2"
+                                    onClick={() => setEditingLoan(loan)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                       <Button
