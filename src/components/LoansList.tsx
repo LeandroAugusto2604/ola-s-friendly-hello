@@ -53,7 +53,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { format, differenceInCalendarDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle2, Clock, FileDown, FileText, Search, Trash2, User, MessageCircle, Copy, Eye, Send, Loader2 } from "lucide-react";
+import { CheckCircle2, Clock, FileDown, FileText, Pencil, Search, Trash2, User, MessageCircle, Copy, Eye, Send, Loader2 } from "lucide-react";
+import { EditClientDialog } from "@/components/EditClientDialog";
 
 interface Installment {
   id: string;
@@ -106,6 +107,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sendingVerification, setSendingVerification] = useState<string | null>(null);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
 
   const { data: clients, isLoading, refetch } = useQuery({
     queryKey: ["clients-with-loans", refreshKey],
@@ -607,6 +609,14 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => setEditingClient(client)}
+                          >
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => handleExportClientPdf(client)}
                           >
                             <FileDown className="h-4 w-4 mr-1" />
@@ -998,6 +1008,14 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
           </Accordion>
         )}
       </CardContent>
+      {editingClient && (
+        <EditClientDialog
+          client={editingClient}
+          open={!!editingClient}
+          onOpenChange={(open) => { if (!open) setEditingClient(null); }}
+          onSuccess={() => { refetch(); onDataChange?.(); }}
+        />
+      )}
     </Card>
   );
 }
