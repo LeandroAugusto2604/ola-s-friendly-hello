@@ -55,6 +55,7 @@ import { format, differenceInCalendarDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CheckCircle2, Clock, FileDown, FileText, Pencil, Search, Trash2, User, MessageCircle, Copy, Eye, Send, Loader2 } from "lucide-react";
 import { EditClientDialog } from "@/components/EditClientDialog";
+import { EditLoanDialog } from "@/components/EditLoanDialog";
 
 interface Installment {
   id: string;
@@ -108,6 +109,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sendingVerification, setSendingVerification] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
 
   const { data: clients, isLoading, refetch } = useQuery({
     queryKey: ["clients-with-loans", refreshKey],
