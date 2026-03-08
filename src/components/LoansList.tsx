@@ -1008,6 +1008,14 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
           </Accordion>
         )}
       </CardContent>
+      {editingClient && (
+        <EditClientDialog
+          client={editingClient}
+          open={!!editingClient}
+          onOpenChange={(open) => { if (!open) setEditingClient(null); }}
+          onSuccess={() => { refetch(); onDataChange?.(); }}
+        />
+      )}
     </Card>
   );
 }
