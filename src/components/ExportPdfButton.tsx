@@ -13,6 +13,7 @@ interface Installment {
   amount: number;
   due_date: string;
   paid: boolean;
+  paid_at: string | null;
 }
 
 interface InterestPayment {
