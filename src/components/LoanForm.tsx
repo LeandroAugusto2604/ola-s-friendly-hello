@@ -156,8 +156,8 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
 
       if (loanError) throw loanError;
 
-      // 3. Generate installments with interest already included
-      const installmentAmount = totalWithInterest / installmentsCount;
+      // 3. Generate installments based on PRINCIPAL only (interest tracked separately)
+      const installmentAmount = amount / installmentsCount;
       const firstDueDate = data.firstDueDate;
       
       const installments = Array.from({ length: installmentsCount }, (_, i) => {
