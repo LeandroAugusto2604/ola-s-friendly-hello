@@ -119,6 +119,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
   const [sendingVerification, setSendingVerification] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
+  const [interestPaymentLoan, setInterestPaymentLoan] = useState<{ loanId: string; remaining: number } | null>(null);
 
   const { data: clients, isLoading, refetch } = useQuery({
     queryKey: ["clients-with-loans", refreshKey],
@@ -155,10 +156,18 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                 .limit(1)
                 .single();
 
+              // Fetch interest payments for this loan
+              const { data: interestPaymentsData } = await supabase
+                .from("interest_payments")
+                .select("*")
+                .eq("loan_id", loan.id)
+                .order("paid_at", { ascending: true });
+
               return {
                 ...loan,
                 installments: installmentsData || [],
                 identity_verification: verificationData || null,
+                interest_payments: (interestPaymentsData || []) as InterestPayment[],
               };
             })
           );
