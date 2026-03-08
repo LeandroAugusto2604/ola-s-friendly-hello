@@ -93,6 +93,7 @@ interface Loan {
   created_at: string;
   installments: Installment[];
   identity_verification?: IdentityVerification | null;
+  interest_payments: InterestPayment[];
 }
 
 interface Client {
