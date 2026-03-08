@@ -707,26 +707,11 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                               className="border border-border/50 rounded-xl p-5 space-y-4 bg-muted/30"
                             >
                               <div className="flex items-start justify-between gap-4">
-                                <div>
+                                <div className="flex-1">
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    {loan.interest_rate > 0 ? (
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <p className="text-lg text-foreground">
-                                          {formatCurrency(Number(loan.original_amount))}
-                                        </p>
-                                        <span className="text-muted-foreground">→</span>
-                                        <p className="text-lg text-foreground">
-                                          {formatCurrency(Number(loan.amount))}
-                                        </p>
-                                        <Badge variant="outline" className="text-xs">
-                                          +{loan.interest_rate}% juros
-                                        </Badge>
-                                      </div>
-                                    ) : (
-                                      <p className="text-lg text-foreground">
-                                        {formatCurrency(Number(loan.amount))}
-                                      </p>
-                                    )}
+                                    <p className="text-lg font-semibold text-foreground">
+                                      {formatCurrency(Number(loan.original_amount))}
+                                    </p>
                                     {loanStatus === "paid_off" && (
                                       <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-0">Quitado</Badge>
                                     )}
@@ -741,19 +726,13 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                   </div>
                                   <p className="text-sm text-muted-foreground mt-1">
                                     {loan.installments_count}x de{" "}
-                                    {formatCurrency(
-                                      Number(loan.amount) / loan.installments_count
-                                    )}
+                                    {formatCurrency(Number(loan.original_amount) / loan.installments_count)}
                                   </p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <div className="text-right">
                                     <Badge
-                                      variant={
-                                        paidCount === loan.installments_count
-                                          ? "default"
-                                          : "secondary"
-                                      }
+                                      variant={paidCount === loan.installments_count ? "default" : "secondary"}
                                     >
                                       {paidCount}/{loan.installments_count} pagas
                                     </Badge>
@@ -761,34 +740,22 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                       Pago: {formatCurrency(totalPaid)}
                                     </p>
                                   </div>
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="ml-2"
-                                    onClick={() => setEditingLoan(loan)}
-                                  >
+                                  <Button variant="outline" size="icon" className="ml-2" onClick={() => setEditingLoan(loan)}>
                                     <Pencil className="h-4 w-4" />
                                   </Button>
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                      <Button
-                                        variant="destructive"
-                                        size="icon"
-                                        className="ml-2"
-                                      >
+                                      <Button variant="destructive" size="icon" className="ml-2">
                                         <Trash2 className="h-4 w-4" />
                                       </Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                       <AlertDialogHeader>
-                                        <AlertDialogTitle>
-                                          Remover empréstimo?
-                                        </AlertDialogTitle>
+                                        <AlertDialogTitle>Remover empréstimo?</AlertDialogTitle>
                                         <AlertDialogDescription>
                                           Esta ação não pode ser desfeita. O empréstimo
-                                          de {formatCurrency(Number(loan.amount))} e
-                                          todas as suas parcelas serão removidos
-                                          permanentemente.
+                                          de {formatCurrency(Number(loan.original_amount))} e
+                                          todas as suas parcelas serão removidos permanentemente.
                                           {client.loans.length === 1 && (
                                             <span className="block mt-2 font-medium">
                                               ⚠️ Como este é o único empréstimo do cliente, o cliente também será removido.
@@ -809,6 +776,62 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                   </AlertDialog>
                                 </div>
                               </div>
+
+                              {/* Interest Section - Separate from installments */}
+                              {totalInterest > 0 && (
+                                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+                                  <div className="flex items-center justify-between">
+                                    <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                                      💰 Juros ({loan.interest_rate}%)
+                                    </h4>
+                                    {interestRemaining > 0 && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setInterestPaymentLoan({ loanId: loan.id, remaining: interestRemaining })}
+                                      >
+                                        Registrar Pagamento
+                                      </Button>
+                                    )}
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-3 text-sm">
+                                    <div>
+                                      <p className="text-muted-foreground">Total</p>
+                                      <p className="font-semibold text-foreground">{formatCurrency(totalInterest)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Pago</p>
+                                      <p className="font-semibold text-emerald-600">{formatCurrency(interestPaid)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Restante</p>
+                                      <p className="font-semibold text-destructive">{formatCurrency(interestRemaining)}</p>
+                                    </div>
+                                  </div>
+                                  {interestRemaining <= 0 && (
+                                    <Badge className="bg-emerald-500/10 text-emerald-600 border-0">✅ Juros quitados</Badge>
+                                  )}
+                                  {/* Interest payment history */}
+                                  {loan.interest_payments.length > 0 && (
+                                    <div className="border-t border-primary/10 pt-3 mt-2">
+                                      <p className="text-xs font-medium text-muted-foreground mb-2">Histórico de pagamentos de juros:</p>
+                                      <div className="space-y-1">
+                                        {loan.interest_payments.map((payment) => (
+                                          <div key={payment.id} className="flex items-center justify-between text-xs">
+                                            <span className="text-muted-foreground">
+                                              {format(new Date(payment.paid_at), "dd/MM/yyyy", { locale: ptBR })}
+                                              {payment.notes && <span className="ml-1 italic">— {payment.notes}</span>}
+                                            </span>
+                                            <span className="font-medium text-emerald-600">
+                                              {formatCurrency(Number(payment.amount))}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
 
                               {/* Overdue summary */}
                               {overdueInstallments.length > 0 && (
