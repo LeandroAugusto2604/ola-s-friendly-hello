@@ -692,9 +692,14 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                             (i) => {
                               if (i.paid) return false;
                               const dueDate = new Date(i.due_date + "T00:00:00");
-                              return dueDate < today; // Only overdue if BEFORE today
+                              return dueDate < today;
                             }
                           );
+
+                          // Interest calculations
+                          const totalInterest = Number(loan.original_amount) * (Number(loan.interest_rate) / 100);
+                          const interestPaid = loan.interest_payments.reduce((sum, p) => sum + Number(p.amount), 0);
+                          const interestRemaining = Math.max(totalInterest - interestPaid, 0);
 
                           return (
                             <div
