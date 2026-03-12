@@ -42,9 +42,7 @@ export function ForgotPasswordDialog() {
   const handleSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
-      const redirectUrl = window.location.hostname === 'localhost'
-        ? 'https://emprestimo-zl.lovable.app/reset-password'
-        : `${window.location.origin}/reset-password`;
+      const redirectUrl = `${window.location.origin}/reset-password`;
 
       const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
         redirectTo: redirectUrl,

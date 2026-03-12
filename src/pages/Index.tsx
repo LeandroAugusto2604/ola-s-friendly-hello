@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { ClientForm } from "@/components/ClientForm";
 import { LoansList } from "@/components/LoansList";
 import { DashboardStats } from "@/components/DashboardStats";
@@ -18,11 +18,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Banknote, LogOut, Plus, Radio, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 function DashboardContent() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { user, signOut, loading } = useAuth();
+  const navigate = useNavigate();
 
   const handleDataChange = useCallback(() => {
     setRefreshKey((prev) => prev + 1);
@@ -32,6 +34,20 @@ function DashboardContent() {
     handleDataChange();
     setIsDialogOpen(false);
   };
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash) return;
+
+    const isRecoveryHash =
+      hash.includes("type=recovery") ||
+      hash.includes("error_code=otp_expired") ||
+      (hash.includes("error=access_denied") && hash.toLowerCase().includes("email+link"));
+
+    if (isRecoveryHash) {
+      navigate(`/reset-password${hash}`, { replace: true });
+    }
+  }, [navigate]);
 
   // Subscribe to real-time updates from all tables
   useRealtimeSubscription({
