@@ -112,8 +112,12 @@ export function PartialPaymentDialog({
               <>
                 <div className="border-t border-border pt-2 mt-2" />
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Juros mensal ({interestRate}%):</span>
-                  <span className="font-semibold text-amber-600">{formatCurrency(monthlyInterestOnRemaining)}</span>
+                  <span className="text-muted-foreground">Saldo devedor do empréstimo:</span>
+                  <span className="font-semibold">{formatCurrency(loanBalanceBefore)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Juros mensal ({interestRate}%) sobre saldo:</span>
+                  <span className="font-semibold text-amber-600">{formatCurrency(interestOnLoanBalance)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total com juros:</span>
