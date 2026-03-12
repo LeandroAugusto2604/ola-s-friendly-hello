@@ -91,6 +91,7 @@ export type Database = {
       installments: {
         Row: {
           amount: number
+          amount_paid: number
           created_at: string
           due_date: string
           id: string
@@ -98,10 +99,12 @@ export type Database = {
           loan_id: string
           paid: boolean
           paid_at: string | null
+          status: string
           updated_at: string
         }
         Insert: {
           amount: number
+          amount_paid?: number
           created_at?: string
           due_date: string
           id?: string
@@ -109,10 +112,12 @@ export type Database = {
           loan_id: string
           paid?: boolean
           paid_at?: string | null
+          status?: string
           updated_at?: string
         }
         Update: {
           amount?: number
+          amount_paid?: number
           created_at?: string
           due_date?: string
           id?: string
@@ -120,6 +125,7 @@ export type Database = {
           loan_id?: string
           paid?: boolean
           paid_at?: string | null
+          status?: string
           updated_at?: string
         }
         Relationships: [
