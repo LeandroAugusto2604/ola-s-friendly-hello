@@ -446,25 +446,29 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
       const todayPdf = new Date();
       todayPdf.setHours(0, 0, 0, 0);
       const interestRateDecimal = Number(loan.interest_rate || 0) / 100;
+      let pdfRunningBalance = Number(loan.original_amount);
       const tableData = loan.installments.map((inst) => {
+        const balanceBefore = pdfRunningBalance;
+        const instAmt = Number(inst.amount);
+        pdfRunningBalance = Math.max(pdfRunningBalance - instAmt, 0);
         const dueDate = new Date(inst.due_date + "T00:00:00");
         const isOverdue = !inst.paid && dueDate < todayPdf;
         const daysLate = isOverdue ? differenceInCalendarDays(todayPdf, dueDate) : 0;
         const lateFee = daysLate * Number(loan.daily_late_fee || 0);
-        const displayAmt = Number(inst.amount) + lateFee;
+        const displayAmt = instAmt + lateFee;
         const valorText = lateFee > 0
           ? `${formatCurrency(displayAmt)} (+${daysLate}d)`
-          : formatCurrency(Number(inst.amount));
+          : formatCurrency(instAmt);
         const amtPaid = Number(inst.amount_paid || 0);
-        const remaining = Math.max(Number(inst.amount) - amtPaid, 0);
-        const remainingWithInterest = remaining + (remaining * interestRateDecimal);
+        const juros = balanceBefore * interestRateDecimal;
+        const totalComJuros = instAmt + juros;
         const statusLabel = inst.status === "liquidado" ? "Liquidado" : inst.status === "parcial" ? "Parcial" : isOverdue ? "Vencida" : "Pendente";
         return [
           `${inst.installment_number}/${totalCount}`,
           valorText,
           formatCurrency(amtPaid),
-          formatCurrency(remaining),
-          formatCurrency(remainingWithInterest),
+          formatCurrency(pdfRunningBalance),
+          formatCurrency(totalComJuros),
           format(dueDate, "dd/MM/yyyy"),
           statusLabel,
           inst.paid && inst.paid_at
