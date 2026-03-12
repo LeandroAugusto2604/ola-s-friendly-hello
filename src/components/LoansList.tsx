@@ -1045,11 +1045,13 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
 
                               {/* Mobile-friendly table wrapper */}
                               <div className="overflow-x-auto -mx-2 sm:mx-0">
-                                <Table className="min-w-[500px]">
+                                <Table className="min-w-[600px]">
                                   <TableHeader>
                                     <TableRow>
                                       <TableHead className="w-20">Parcela</TableHead>
                                       <TableHead>Valor</TableHead>
+                                      <TableHead>Pago</TableHead>
+                                      <TableHead>Restante</TableHead>
                                       <TableHead>Vencimento</TableHead>
                                       <TableHead>Status</TableHead>
                                       <TableHead className="text-right">Ação</TableHead>
@@ -1063,7 +1065,11 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                     const isOverdue = !installment.paid && dueDateCheck < todayCheck;
                                     const daysLate = isOverdue ? differenceInCalendarDays(todayCheck, dueDateCheck) : 0;
                                     const lateFee = daysLate * Number(loan.daily_late_fee || 0);
-                                    const displayAmount = Number(installment.amount) + lateFee;
+                                    const instAmount = Number(installment.amount);
+                                    const instPaid = Number(installment.amount_paid || 0);
+                                    const instRemaining = Math.max(instAmount - instPaid, 0);
+                                    const displayAmount = instAmount + lateFee;
+                                    const instStatus = installment.status || (installment.paid ? "liquidado" : "pendente");
 
                                     return (
                                       <TableRow key={installment.id}>
@@ -1075,7 +1081,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                           {isOverdue && lateFee > 0 ? (
                                             <div>
                                               <span className="line-through text-muted-foreground text-xs">
-                                                {formatCurrency(Number(installment.amount))}
+                                                {formatCurrency(instAmount)}
                                               </span>
                                               <span className="block font-semibold text-destructive">
                                                 {formatCurrency(displayAmount)}
@@ -1085,8 +1091,18 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                               </span>
                                             </div>
                                           ) : (
-                                            formatCurrency(Number(installment.amount))
+                                            formatCurrency(instAmount)
                                           )}
+                                        </TableCell>
+                                        <TableCell>
+                                          <span className={instPaid > 0 ? "font-semibold text-emerald-600" : "text-muted-foreground"}>
+                                            {formatCurrency(instPaid)}
+                                          </span>
+                                        </TableCell>
+                                        <TableCell>
+                                          <span className={instRemaining > 0 ? "font-semibold text-destructive" : "text-muted-foreground"}>
+                                            {formatCurrency(instRemaining)}
+                                          </span>
                                         </TableCell>
                                         <TableCell>
                                           {format(
@@ -1096,10 +1112,15 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                           )}
                                         </TableCell>
                                         <TableCell>
-                                          {installment.paid ? (
+                                          {instStatus === "liquidado" ? (
                                             <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-0">
                                               <CheckCircle2 className="mr-1 h-3 w-3" />
-                                              Pago
+                                              Liquidado
+                                            </Badge>
+                                          ) : instStatus === "parcial" ? (
+                                            <Badge className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-0">
+                                              <Clock className="mr-1 h-3 w-3" />
+                                              Parcial
                                             </Badge>
                                           ) : isOverdue ? (
                                             <Badge variant="destructive" className="border-0">
@@ -1114,15 +1135,21 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                           )}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                          {!installment.paid && (
+                                          {instStatus !== "liquidado" && (
                                             <Button
                                               size="sm"
                                               onClick={() =>
-                                                handlePayInstallment(installment.id)
+                                                setPartialPayment({
+                                                  installmentId: installment.id,
+                                                  installmentNumber: installment.installment_number,
+                                                  amount: instAmount,
+                                                  amountPaid: instPaid,
+                                                  interestRate: Number(loan.interest_rate || 0),
+                                                })
                                               }
                                               className="gradient-primary border-0 shadow-sm hover:opacity-90"
                                             >
-                                              Marcar Pago
+                                              Pagar
                                             </Button>
                                           )}
                                         </TableCell>
@@ -1132,6 +1159,75 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                 </TableBody>
                               </Table>
                               </div>
+
+                              {/* Extrato de Pagamentos */}
+                              {loan.installments.some(i => Number(i.amount_paid || 0) > 0) && (
+                                <div className="rounded-xl border border-border/50 bg-muted/30 p-4 space-y-3">
+                                  <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                                    📋 Extrato de Pagamentos
+                                  </h4>
+                                  <div className="space-y-2">
+                                    {loan.installments
+                                      .filter(i => Number(i.amount_paid || 0) > 0)
+                                      .map((inst) => {
+                                        const remaining = Math.max(Number(inst.amount) - Number(inst.amount_paid || 0), 0);
+                                        const instStatus = inst.status || (inst.paid ? "liquidado" : "pendente");
+                                        return (
+                                          <div key={inst.id} className="flex items-center justify-between text-sm border-b border-border/30 pb-2 last:border-0">
+                                            <div>
+                                              <span className="font-medium">Parcela {inst.installment_number}/{loan.installments_count}</span>
+                                              <span className="text-muted-foreground ml-2">
+                                                Venc: {format(new Date(inst.due_date + "T00:00:00"), "dd/MM/yyyy")}
+                                              </span>
+                                              {inst.paid_at && (
+                                                <span className="text-muted-foreground ml-2">
+                                                  • Pago em: {format(new Date(inst.paid_at), "dd/MM/yyyy")}
+                                                </span>
+                                              )}
+                                            </div>
+                                            <div className="text-right">
+                                              <span className="font-semibold text-emerald-600">
+                                                {formatCurrency(Number(inst.amount_paid || 0))}
+                                              </span>
+                                              {remaining > 0 && (
+                                                <span className="text-xs text-destructive ml-2">
+                                                  (resta {formatCurrency(remaining)})
+                                                </span>
+                                              )}
+                                              <Badge className="ml-2 text-xs" variant={instStatus === "liquidado" ? "default" : "secondary"}>
+                                                {instStatus === "liquidado" ? "Liquidado" : "Parcial"}
+                                              </Badge>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                  </div>
+                                  <div className="border-t border-border pt-3 grid grid-cols-3 gap-3 text-sm">
+                                    <div>
+                                      <p className="text-muted-foreground">Total Empréstimo</p>
+                                      <p className="font-bold">{formatCurrency(Number(loan.original_amount))}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Total Pago</p>
+                                      <p className="font-bold text-emerald-600">
+                                        {formatCurrency(loan.installments.reduce((s, i) => s + Number(i.amount_paid || 0), 0))}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Saldo Devedor</p>
+                                      <p className="font-bold text-destructive">
+                                        {formatCurrency(
+                                          Math.max(
+                                            Number(loan.original_amount) -
+                                            loan.installments.reduce((s, i) => s + Number(i.amount_paid || 0), 0),
+                                            0
+                                          )
+                                        )}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           );
                         })
