@@ -283,10 +283,15 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
     });
   };
 
-  const handlePayInstallment = async (installmentId: string) => {
+  const handlePayInstallment = async (installmentId: string, installmentAmount: number) => {
     const { error } = await supabase
       .from("installments")
-      .update({ paid: true, paid_at: new Date().toISOString() })
+      .update({
+        paid: true,
+        paid_at: new Date().toISOString(),
+        amount_paid: installmentAmount,
+        status: "liquidado",
+      } as any)
       .eq("id", installmentId);
 
     if (error) {
