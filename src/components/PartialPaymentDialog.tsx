@@ -18,6 +18,7 @@ interface PartialPaymentDialogProps {
   installmentAmount: number;
   amountPaid: number;
   interestRate: number;
+  loanBalanceBefore: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
@@ -29,6 +30,7 @@ export function PartialPaymentDialog({
   installmentAmount,
   amountPaid,
   interestRate,
+  loanBalanceBefore,
   open,
   onOpenChange,
   onSuccess,
@@ -37,8 +39,8 @@ export function PartialPaymentDialog({
   const [saving, setSaving] = useState(false);
 
   const remainingBalance = installmentAmount - amountPaid;
-  const monthlyInterestOnRemaining = remainingBalance * (interestRate / 100);
-  const totalDue = remainingBalance + monthlyInterestOnRemaining;
+  const interestOnLoanBalance = loanBalanceBefore * (interestRate / 100);
+  const totalDue = remainingBalance + interestOnLoanBalance;
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
