@@ -977,60 +977,6 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                 })()}
                               </div>
 
-                              {totalInterest > 0 && (
-                                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
-                                  <div className="flex items-center justify-between">
-                                    <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                                      💰 Juros ({loan.interest_rate}%)
-                                    </h4>
-                                    {interestRemaining > 0 && (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => setInterestPaymentLoan({ loanId: loan.id, remaining: interestRemaining })}
-                                      >
-                                        Registrar Pagamento
-                                      </Button>
-                                    )}
-                                  </div>
-                                  <div className="grid grid-cols-3 gap-3 text-sm">
-                                    <div>
-                                      <p className="text-muted-foreground">Total</p>
-                                      <p className="font-semibold text-foreground">{formatCurrency(totalInterest)}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-muted-foreground">Pago</p>
-                                      <p className="font-semibold text-emerald-600">{formatCurrency(interestPaid)}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-muted-foreground">Restante</p>
-                                      <p className="font-semibold text-destructive">{formatCurrency(interestRemaining)}</p>
-                                    </div>
-                                  </div>
-                                  {interestRemaining <= 0 && (
-                                    <Badge className="bg-emerald-500/10 text-emerald-600 border-0">✅ Juros quitados</Badge>
-                                  )}
-                                  {/* Interest payment history */}
-                                  {loan.interest_payments.length > 0 && (
-                                    <div className="border-t border-primary/10 pt-3 mt-2">
-                                      <p className="text-xs font-medium text-muted-foreground mb-2">Histórico de pagamentos de juros:</p>
-                                      <div className="space-y-1">
-                                        {loan.interest_payments.map((payment) => (
-                                          <div key={payment.id} className="flex items-center justify-between text-xs">
-                                            <span className="text-muted-foreground">
-                                              {format(new Date(payment.paid_at), "dd/MM/yyyy", { locale: ptBR })}
-                                              {payment.notes && <span className="ml-1 italic">— {payment.notes}</span>}
-                                            </span>
-                                            <span className="font-medium text-emerald-600">
-                                              {formatCurrency(Number(payment.amount))}
-                                            </span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
 
                               {/* Overdue summary */}
                               {overdueInstallments.length > 0 && (
