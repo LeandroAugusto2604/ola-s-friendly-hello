@@ -1061,12 +1061,15 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                       // Apply credit from previous overpayments to reduce this installment's effective principal
                                       const effectivePrincipal = Math.max(instAmount - credit, 0);
                                       credit = Math.max(credit - instAmount, 0);
-                                      // If paid more than the effective principal, the excess becomes new credit
-                                      const overpayment = Math.max(instPaid - effectivePrincipal, 0);
+                                      // Interest on balance BEFORE this payment
+                                      const jurosOnBalance = balanceBefore * (rate / 100);
+                                      // Total due = effective principal + interest. Credit only if paid MORE than that
+                                      const totalDue = effectivePrincipal + jurosOnBalance;
+                                      const overpayment = Math.max(instPaid - totalDue, 0);
                                       credit += overpayment;
-                                      // Deduct actual principal paid from balance
-                                      const principalDeducted = Math.min(instPaid > 0 ? Math.max(instPaid, effectivePrincipal) : effectivePrincipal, runningBalance);
-                                      runningBalance = Math.max(runningBalance - principalDeducted, 0);
+                                      // Deduct principal from balance (effective principal or more if overpaid beyond interest)
+                                      const principalPaid = effectivePrincipal + overpayment;
+                                      runningBalance = Math.max(runningBalance - principalPaid, 0);
                                       return { balanceBefore, balanceAfter: runningBalance, instAmount, instPaid, effectivePrincipal };
                                     });
 
