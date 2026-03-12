@@ -1220,6 +1220,26 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                           </span>
                                         </TableCell>
                                         <TableCell>
+                                          {(() => {
+                                            // Calculate remaining balance up to this installment
+                                            const paidBefore = loan.installments
+                                              .filter(i => i.installment_number <= installment.installment_number)
+                                              .reduce((s, i) => s + Number(i.amount_paid || 0), 0);
+                                            const saldoAtual = Math.max(Number(loan.original_amount) - paidBefore, 0);
+                                            const rate = Number(loan.interest_rate || 0);
+                                            const juros = saldoAtual * (rate / 100);
+                                            const restComJuros = instRemaining + juros;
+                                            return instRemaining > 0 ? (
+                                              <div>
+                                                <span className="font-bold text-foreground">{formatCurrency(restComJuros)}</span>
+                                                {rate > 0 && <span className="block text-xs text-amber-600">+{formatCurrency(juros)} juros</span>}
+                                              </div>
+                                            ) : (
+                                              <span className="text-muted-foreground">-</span>
+                                            );
+                                          })()}
+                                        </TableCell>
+                                        <TableCell>
                                           {format(
                                             new Date(installment.due_date + "T00:00:00"),
                                             "dd/MM/yyyy",
