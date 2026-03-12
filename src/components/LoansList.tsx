@@ -425,23 +425,30 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
       todayPdf.setHours(0, 0, 0, 0);
       const interestRateDecimal = Number(loan.interest_rate || 0) / 100;
       let pdfRunningBalance = Number(loan.original_amount);
+      let pdfCredit = 0;
       const tableData = loan.installments.map((inst) => {
         const balanceBefore = pdfRunningBalance;
         const instAmt = Number(inst.amount);
         const instPaid = Number(inst.amount_paid || 0);
-        // Only deduct the planned principal amount from balance
-        pdfRunningBalance = Math.max(pdfRunningBalance - instAmt, 0);
+        const effectivePrincipal = Math.max(instAmt - pdfCredit, 0);
+        pdfCredit = Math.max(pdfCredit - instAmt, 0);
+        const overpayment = Math.max(instPaid - effectivePrincipal, 0);
+        pdfCredit += overpayment;
+        const principalDeducted = Math.min(instPaid > 0 ? Math.max(instPaid, effectivePrincipal) : effectivePrincipal, pdfRunningBalance);
+        pdfRunningBalance = Math.max(pdfRunningBalance - principalDeducted, 0);
         const dueDate = new Date(inst.due_date + "T00:00:00");
         const isOverdue = !inst.paid && dueDate < todayPdf;
         const daysLate = isOverdue ? differenceInCalendarDays(todayPdf, dueDate) : 0;
         const lateFee = daysLate * Number(loan.daily_late_fee || 0);
-        const displayAmt = instAmt + lateFee;
+        const displayAmt = effectivePrincipal + lateFee;
         const valorText = lateFee > 0
           ? `${formatCurrency(displayAmt)} (+${daysLate}d)`
-          : formatCurrency(instAmt);
+          : effectivePrincipal < instAmt
+            ? `${formatCurrency(effectivePrincipal)} (cred.)`
+            : formatCurrency(instAmt);
         const amtPaid = Number(inst.amount_paid || 0);
         const juros = balanceBefore * interestRateDecimal;
-        const totalComJuros = instAmt + juros;
+        const totalComJuros = effectivePrincipal + juros;
         const statusLabel = inst.status === "liquidado" ? "Liquidado" : inst.status === "parcial" ? "Parcial" : isOverdue ? "Vencida" : "Pendente";
         return [
           `${inst.installment_number}/${totalCount}`,
@@ -1043,15 +1050,24 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                 <TableBody>
                                   {(() => {
                                     // Pre-calculate running balance for each installment
+                                    // Overpayments carry forward as credit to reduce future installments
                                     let runningBalance = Number(loan.original_amount);
+                                    let credit = 0;
                                     const rate = Number(loan.interest_rate || 0);
                                     const balanceData = loan.installments.map((inst) => {
                                       const balanceBefore = runningBalance;
                                       const instAmount = Number(inst.amount);
                                       const instPaid = Number(inst.amount_paid || 0);
-                                      // Only deduct the planned principal amount from balance
-                                      runningBalance = Math.max(runningBalance - instAmount, 0);
-                                      return { balanceBefore, balanceAfter: runningBalance, instAmount, instPaid };
+                                      // Apply credit from previous overpayments to reduce this installment's effective principal
+                                      const effectivePrincipal = Math.max(instAmount - credit, 0);
+                                      credit = Math.max(credit - instAmount, 0);
+                                      // If paid more than the effective principal, the excess becomes new credit
+                                      const overpayment = Math.max(instPaid - effectivePrincipal, 0);
+                                      credit += overpayment;
+                                      // Deduct actual principal paid from balance
+                                      const principalDeducted = Math.min(instPaid > 0 ? Math.max(instPaid, effectivePrincipal) : effectivePrincipal, runningBalance);
+                                      runningBalance = Math.max(runningBalance - principalDeducted, 0);
+                                      return { balanceBefore, balanceAfter: runningBalance, instAmount, instPaid, effectivePrincipal };
                                     });
 
                                     return loan.installments.map((installment, idx) => {
@@ -1063,8 +1079,9 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                     const lateFee = daysLate * Number(loan.daily_late_fee || 0);
                                     const instAmount = balanceData[idx].instAmount;
                                     const instPaid = balanceData[idx].instPaid;
-                                    const instRemaining = Math.max(instAmount - instPaid, 0);
-                                    const displayAmount = instAmount + lateFee;
+                                    const effectivePrincipal = balanceData[idx].effectivePrincipal;
+                                    const instRemaining = Math.max(effectivePrincipal - instPaid, 0);
+                                    const displayAmount = effectivePrincipal + lateFee;
                                     const instStatus = installment.status || (installment.paid ? "liquidado" : "pendente");
                                     const { balanceBefore, balanceAfter } = balanceData[idx];
                                     const juros = balanceBefore * (rate / 100);
@@ -1079,7 +1096,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                           {isOverdue && lateFee > 0 ? (
                                             <div>
                                               <span className="line-through text-muted-foreground text-xs">
-                                                {formatCurrency(instAmount)}
+                                                {formatCurrency(effectivePrincipal)}
                                               </span>
                                               <span className="block font-semibold text-destructive">
                                                 {formatCurrency(displayAmount)}
@@ -1088,8 +1105,20 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                                 +{daysLate}d × {formatCurrency(Number(loan.daily_late_fee))}
                                               </span>
                                             </div>
+                                          ) : effectivePrincipal < instAmount ? (
+                                            <div>
+                                              <span className="line-through text-muted-foreground text-xs">
+                                                {formatCurrency(instAmount)}
+                                              </span>
+                                              <span className="block font-semibold text-emerald-600">
+                                                {formatCurrency(effectivePrincipal)}
+                                              </span>
+                                              <span className="text-xs text-muted-foreground">
+                                                crédito anterior aplicado
+                                              </span>
+                                            </div>
                                           ) : (
-                                            formatCurrency(instAmount)
+                                            formatCurrency(effectivePrincipal)
                                           )}
                                         </TableCell>
                                         <TableCell>
@@ -1105,7 +1134,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                         <TableCell>
                                           {instStatus !== "liquidado" ? (
                                             <div>
-                                              <span className="font-bold text-foreground">{formatCurrency(instAmount + juros)}</span>
+                                              <span className="font-bold text-foreground">{formatCurrency(effectivePrincipal + juros)}</span>
                                               {rate > 0 && <span className="block text-xs text-amber-600">+{formatCurrency(juros)} juros</span>}
                                             </div>
                                           ) : (
