@@ -62,48 +62,34 @@ export function LoanConfigForm({ clientId, clientName, onSuccess, onBack }: Loan
   const watchedInterest = parseFloat(form.watch("interestRate")) || 0;
   const watchedInstallments = parseInt(form.watch("installmentsCount")) || 1;
 
-  // Calculate with compound interest on remaining balance (Price table style)
+  // Calculate with interest on remaining balance (declining balance)
   const calculateInstallments = (principal: number, monthlyRate: number, numInstallments: number) => {
-    if (monthlyRate === 0) {
-      return {
-        installmentValue: principal / numInstallments,
-        totalWithInterest: principal,
-        totalInterest: 0,
-        schedule: Array.from({ length: numInstallments }, (_, i) => ({
-          number: i + 1,
-          installment: principal / numInstallments,
-          interest: 0,
-          amortization: principal / numInstallments,
-          balance: principal - (principal / numInstallments) * (i + 1),
-        })),
-      };
-    }
-
+    const basePortion = principal / numInstallments;
     const rate = monthlyRate / 100;
-    // PMT formula: PMT = PV * [r(1+r)^n] / [(1+r)^n - 1]
-    const pmt = principal * (rate * Math.pow(1 + rate, numInstallments)) / (Math.pow(1 + rate, numInstallments) - 1);
-    
     let balance = principal;
     const schedule = [];
-    
+
     for (let i = 0; i < numInstallments; i++) {
-      const interestPortion = balance * rate;
-      const amortizationPortion = pmt - interestPortion;
-      balance = Math.max(balance - amortizationPortion, 0);
-      
+      const interest = balance * rate;
+      const installmentTotal = basePortion + interest;
+      balance = Math.max(balance - basePortion, 0);
+
       schedule.push({
         number: i + 1,
-        installment: pmt,
-        interest: interestPortion,
-        amortization: amortizationPortion,
+        installment: installmentTotal,
+        interest,
+        amortization: basePortion,
         balance,
       });
     }
 
+    const totalInterest = schedule.reduce((s, r) => s + r.interest, 0);
+    const totalWithInterest = principal + totalInterest;
+
     return {
-      installmentValue: pmt,
-      totalWithInterest: pmt * numInstallments,
-      totalInterest: (pmt * numInstallments) - principal,
+      installmentValue: basePortion,
+      totalWithInterest,
+      totalInterest,
       schedule,
     };
   };
