@@ -1043,15 +1043,24 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                 <TableBody>
                                   {(() => {
                                     // Pre-calculate running balance for each installment
+                                    // Overpayments carry forward as credit to reduce future installments
                                     let runningBalance = Number(loan.original_amount);
+                                    let credit = 0;
                                     const rate = Number(loan.interest_rate || 0);
                                     const balanceData = loan.installments.map((inst) => {
                                       const balanceBefore = runningBalance;
                                       const instAmount = Number(inst.amount);
                                       const instPaid = Number(inst.amount_paid || 0);
-                                      // Only deduct the planned principal amount from balance
-                                      runningBalance = Math.max(runningBalance - instAmount, 0);
-                                      return { balanceBefore, balanceAfter: runningBalance, instAmount, instPaid };
+                                      // Apply credit from previous overpayments to reduce this installment's effective principal
+                                      const effectivePrincipal = Math.max(instAmount - credit, 0);
+                                      credit = Math.max(credit - instAmount, 0);
+                                      // If paid more than the effective principal, the excess becomes new credit
+                                      const overpayment = Math.max(instPaid - effectivePrincipal, 0);
+                                      credit += overpayment;
+                                      // Deduct actual principal paid from balance
+                                      const principalDeducted = Math.min(instPaid > 0 ? Math.max(instPaid, effectivePrincipal) : effectivePrincipal, runningBalance);
+                                      runningBalance = Math.max(runningBalance - principalDeducted, 0);
+                                      return { balanceBefore, balanceAfter: runningBalance, instAmount, instPaid, effectivePrincipal };
                                     });
 
                                     return loan.installments.map((installment, idx) => {
