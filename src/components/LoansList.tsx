@@ -874,26 +874,26 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                   const parcelaMensal = Number(loan.original_amount) / loan.installments_count;
                                   const parcelaMaisJuros = parcelaMensal + jurosSobreSaldo;
                                   return (
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                                      <div className="rounded-lg bg-background p-3 shadow-sm">
-                                        <p className="text-muted-foreground text-xs">Total Emprestado</p>
-                                        <p className="font-bold text-foreground text-lg">{formatCurrency(Number(loan.original_amount))}</p>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-sm">
+                                      <div className="rounded-lg bg-background p-2 sm:p-3 shadow-sm">
+                                        <p className="text-muted-foreground text-[10px] sm:text-xs">Total Emprestado</p>
+                                        <p className="font-bold text-foreground text-sm sm:text-lg">{formatCurrency(Number(loan.original_amount))}</p>
                                       </div>
-                                      <div className="rounded-lg bg-background p-3 shadow-sm">
-                                        <p className="text-muted-foreground text-xs">Total Pago</p>
-                                        <p className="font-bold text-emerald-600 text-lg">{formatCurrency(totalPaid)}</p>
+                                      <div className="rounded-lg bg-background p-2 sm:p-3 shadow-sm">
+                                        <p className="text-muted-foreground text-[10px] sm:text-xs">Total Pago</p>
+                                        <p className="font-bold text-emerald-600 text-sm sm:text-lg">{formatCurrency(totalPaid)}</p>
                                       </div>
-                                      <div className="rounded-lg bg-background p-3 shadow-sm">
-                                        <p className="text-muted-foreground text-xs">Saldo Devedor</p>
-                                        <p className="font-bold text-destructive text-lg">{formatCurrency(saldoDevedor)}</p>
+                                      <div className="rounded-lg bg-background p-2 sm:p-3 shadow-sm">
+                                        <p className="text-muted-foreground text-[10px] sm:text-xs">Saldo Devedor</p>
+                                        <p className="font-bold text-destructive text-sm sm:text-lg">{formatCurrency(saldoDevedor)}</p>
                                       </div>
-                                      <div className="rounded-lg bg-background p-3 shadow-sm">
-                                        <p className="text-muted-foreground text-xs">
+                                      <div className="rounded-lg bg-background p-2 sm:p-3 shadow-sm">
+                                        <p className="text-muted-foreground text-[10px] sm:text-xs">
                                           {rate > 0 ? `Parcela + Juros (${rate}%)` : "Valor da Parcela"}
                                         </p>
-                                        <p className="font-bold text-foreground text-lg">{formatCurrency(rate > 0 ? parcelaMaisJuros : parcelaMensal)}</p>
+                                        <p className="font-bold text-foreground text-sm sm:text-lg">{formatCurrency(rate > 0 ? parcelaMaisJuros : parcelaMensal)}</p>
                                         {rate > 0 && (
-                                          <p className="text-xs text-amber-600 mt-1">
+                                          <p className="text-[10px] sm:text-xs text-amber-600 mt-0.5 sm:mt-1">
                                             Parcela {formatCurrency(parcelaMensal)} + Juros {formatCurrency(jurosSobreSaldo)}
                                           </p>
                                         )}
