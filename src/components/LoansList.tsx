@@ -1318,6 +1318,21 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
           onSuccess={() => { refetch(); onDataChange?.(); }}
         />
       )}
+      {addingLoanToClient && (
+        <Dialog open={!!addingLoanToClient} onOpenChange={(open) => { if (!open) setAddingLoanToClient(null); }}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto shadow-hover" onPointerDownOutside={(e) => e.preventDefault()}>
+            <DialogHeader>
+              <DialogTitle className="text-xl">Novo Empréstimo — {addingLoanToClient.name}</DialogTitle>
+            </DialogHeader>
+            <LoanConfigForm
+              clientId={addingLoanToClient.id}
+              clientName={addingLoanToClient.name}
+              onSuccess={() => { setAddingLoanToClient(null); refetch(); onDataChange?.(); }}
+              onBack={() => setAddingLoanToClient(null)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 }
