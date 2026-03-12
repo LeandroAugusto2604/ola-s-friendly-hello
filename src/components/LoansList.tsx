@@ -1077,8 +1077,9 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                     const lateFee = daysLate * Number(loan.daily_late_fee || 0);
                                     const instAmount = balanceData[idx].instAmount;
                                     const instPaid = balanceData[idx].instPaid;
-                                    const instRemaining = Math.max(instAmount - instPaid, 0);
-                                    const displayAmount = instAmount + lateFee;
+                                    const effectivePrincipal = balanceData[idx].effectivePrincipal;
+                                    const instRemaining = Math.max(effectivePrincipal - instPaid, 0);
+                                    const displayAmount = effectivePrincipal + lateFee;
                                     const instStatus = installment.status || (installment.paid ? "liquidado" : "pendente");
                                     const { balanceBefore, balanceAfter } = balanceData[idx];
                                     const juros = balanceBefore * (rate / 100);
