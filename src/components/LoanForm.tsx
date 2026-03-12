@@ -307,7 +307,7 @@ export function LoanForm({ onSuccess }: LoanFormProps) {
                 name="interestRate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Taxa de Juros (%)</FormLabel>
+                    <FormLabel>Taxa de Juros Mensal (%)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
