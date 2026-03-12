@@ -1173,18 +1173,33 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                     </TableRow>
                                   </TableHeader>
                                 <TableBody>
-                                  {loan.installments.map((installment) => {
+                                  {(() => {
+                                    // Pre-calculate running balance for each installment
+                                    let runningBalance = Number(loan.original_amount);
+                                    const rate = Number(loan.interest_rate || 0);
+                                    const balanceData = loan.installments.map((inst) => {
+                                      const balanceBefore = runningBalance;
+                                      const instAmount = Number(inst.amount);
+                                      const instPaid = Number(inst.amount_paid || 0);
+                                      // Deduct the installment amount from balance (planned amortization)
+                                      runningBalance = Math.max(runningBalance - instAmount, 0);
+                                      return { balanceBefore, balanceAfter: runningBalance, instAmount, instPaid };
+                                    });
+
+                                    return loan.installments.map((installment, idx) => {
                                     const todayCheck = new Date();
                                     todayCheck.setHours(0, 0, 0, 0);
                                     const dueDateCheck = new Date(installment.due_date + "T00:00:00");
                                     const isOverdue = !installment.paid && dueDateCheck < todayCheck;
                                     const daysLate = isOverdue ? differenceInCalendarDays(todayCheck, dueDateCheck) : 0;
                                     const lateFee = daysLate * Number(loan.daily_late_fee || 0);
-                                    const instAmount = Number(installment.amount);
-                                    const instPaid = Number(installment.amount_paid || 0);
+                                    const instAmount = balanceData[idx].instAmount;
+                                    const instPaid = balanceData[idx].instPaid;
                                     const instRemaining = Math.max(instAmount - instPaid, 0);
                                     const displayAmount = instAmount + lateFee;
                                     const instStatus = installment.status || (installment.paid ? "liquidado" : "pendente");
+                                    const { balanceBefore, balanceAfter } = balanceData[idx];
+                                    const juros = balanceBefore * (rate / 100);
 
                                     return (
                                       <TableRow key={installment.id}>
@@ -1215,30 +1230,19 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                           </span>
                                         </TableCell>
                                         <TableCell>
-                                          <span className={instRemaining > 0 ? "font-semibold text-destructive" : "text-muted-foreground"}>
-                                            {formatCurrency(instRemaining)}
+                                          <span className={balanceAfter > 0 ? "font-semibold text-destructive" : "text-emerald-600 font-semibold"}>
+                                            {formatCurrency(balanceAfter)}
                                           </span>
                                         </TableCell>
                                         <TableCell>
-                                          {(() => {
-                                            // Calculate remaining balance up to this installment
-                                            const paidBefore = loan.installments
-                                              .filter(i => i.installment_number <= installment.installment_number)
-                                              .reduce((s, i) => s + Number(i.amount_paid || 0), 0);
-                                            const saldoAtual = Math.max(Number(loan.original_amount) - paidBefore, 0);
-                                            const rate = Number(loan.interest_rate || 0);
-                                            const juros = saldoAtual * (rate / 100);
-                                            const restComJuros = instRemaining + juros;
-                                            return instRemaining > 0 ? (
-                                              <div>
-                                                <span className="font-bold text-foreground">{formatCurrency(restComJuros)}</span>
-                                                {rate > 0 && <span className="block text-xs text-amber-600">+{formatCurrency(juros)} juros</span>}
-                                              </div>
-                                            ) : (
-                                              <span className="text-muted-foreground">-</span>
-                                            );
-                                          })()}
-                                        </TableCell>
+                                          {instStatus !== "liquidado" ? (
+                                            <div>
+                                              <span className="font-bold text-foreground">{formatCurrency(instAmount + juros)}</span>
+                                              {rate > 0 && <span className="block text-xs text-amber-600">+{formatCurrency(juros)} juros</span>}
+                                            </div>
+                                          ) : (
+                                            <span className="text-muted-foreground">-</span>
+                                          )}
                                         <TableCell>
                                           {format(
                                             new Date(installment.due_date + "T00:00:00"),
