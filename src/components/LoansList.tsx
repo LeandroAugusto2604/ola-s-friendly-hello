@@ -1406,6 +1406,18 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
           </DialogContent>
         </Dialog>
       )}
+      {advancePayment && (
+        <AdvancePaymentDialog
+          loanId={advancePayment.loanId}
+          originalAmount={advancePayment.originalAmount}
+          totalPaid={advancePayment.totalPaid}
+          interestRate={advancePayment.interestRate}
+          installments={advancePayment.installments}
+          open={!!advancePayment}
+          onOpenChange={(open) => { if (!open) setAdvancePayment(null); }}
+          onSuccess={() => { refetch(); onDataChange?.(); }}
+        />
+      )}
     </Card>
   );
 }
