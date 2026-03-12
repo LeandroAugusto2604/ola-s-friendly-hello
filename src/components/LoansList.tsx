@@ -1419,6 +1419,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
           installmentAmount={partialPayment.amount}
           amountPaid={partialPayment.amountPaid}
           interestRate={partialPayment.interestRate}
+          loanBalanceBefore={partialPayment.loanBalanceBefore}
           open={!!partialPayment}
           onOpenChange={(open) => { if (!open) setPartialPayment(null); }}
           onSuccess={() => { refetch(); onDataChange?.(); }}
