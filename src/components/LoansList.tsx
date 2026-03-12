@@ -838,16 +838,16 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                               </div>
 
                               {/* Financial Summary Panel */}
-                              <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-5 space-y-3">
+                              <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-3 sm:p-5 space-y-2 sm:space-y-3">
                                 <div className="flex items-center justify-between">
-                                  <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                                  <h4 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1 sm:gap-2">
                                     📊 Resumo Financeiro
                                   </h4>
                                   {Math.max(Number(loan.original_amount) - totalPaid, 0) > 0 && (
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      className="gap-1"
+                                      className="gap-1 text-xs h-7 sm:h-8"
                                       onClick={() => setAdvancePayment({
                                         loanId: loan.id,
                                         originalAmount: Number(loan.original_amount),
@@ -874,26 +874,26 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                   const parcelaMensal = Number(loan.original_amount) / loan.installments_count;
                                   const parcelaMaisJuros = parcelaMensal + jurosSobreSaldo;
                                   return (
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                                      <div className="rounded-lg bg-background p-3 shadow-sm">
-                                        <p className="text-muted-foreground text-xs">Total Emprestado</p>
-                                        <p className="font-bold text-foreground text-lg">{formatCurrency(Number(loan.original_amount))}</p>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-sm">
+                                      <div className="rounded-lg bg-background p-2 sm:p-3 shadow-sm">
+                                        <p className="text-muted-foreground text-[10px] sm:text-xs">Total Emprestado</p>
+                                        <p className="font-bold text-foreground text-sm sm:text-lg">{formatCurrency(Number(loan.original_amount))}</p>
                                       </div>
-                                      <div className="rounded-lg bg-background p-3 shadow-sm">
-                                        <p className="text-muted-foreground text-xs">Total Pago</p>
-                                        <p className="font-bold text-emerald-600 text-lg">{formatCurrency(totalPaid)}</p>
+                                      <div className="rounded-lg bg-background p-2 sm:p-3 shadow-sm">
+                                        <p className="text-muted-foreground text-[10px] sm:text-xs">Total Pago</p>
+                                        <p className="font-bold text-emerald-600 text-sm sm:text-lg">{formatCurrency(totalPaid)}</p>
                                       </div>
-                                      <div className="rounded-lg bg-background p-3 shadow-sm">
-                                        <p className="text-muted-foreground text-xs">Saldo Devedor</p>
-                                        <p className="font-bold text-destructive text-lg">{formatCurrency(saldoDevedor)}</p>
+                                      <div className="rounded-lg bg-background p-2 sm:p-3 shadow-sm">
+                                        <p className="text-muted-foreground text-[10px] sm:text-xs">Saldo Devedor</p>
+                                        <p className="font-bold text-destructive text-sm sm:text-lg">{formatCurrency(saldoDevedor)}</p>
                                       </div>
-                                      <div className="rounded-lg bg-background p-3 shadow-sm">
-                                        <p className="text-muted-foreground text-xs">
+                                      <div className="rounded-lg bg-background p-2 sm:p-3 shadow-sm">
+                                        <p className="text-muted-foreground text-[10px] sm:text-xs">
                                           {rate > 0 ? `Parcela + Juros (${rate}%)` : "Valor da Parcela"}
                                         </p>
-                                        <p className="font-bold text-foreground text-lg">{formatCurrency(rate > 0 ? parcelaMaisJuros : parcelaMensal)}</p>
+                                        <p className="font-bold text-foreground text-sm sm:text-lg">{formatCurrency(rate > 0 ? parcelaMaisJuros : parcelaMensal)}</p>
                                         {rate > 0 && (
-                                          <p className="text-xs text-amber-600 mt-1">
+                                          <p className="text-[10px] sm:text-xs text-amber-600 mt-0.5 sm:mt-1">
                                             Parcela {formatCurrency(parcelaMensal)} + Juros {formatCurrency(jurosSobreSaldo)}
                                           </p>
                                         )}
