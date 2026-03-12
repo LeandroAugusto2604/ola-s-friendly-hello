@@ -1243,6 +1243,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                           ) : (
                                             <span className="text-muted-foreground">-</span>
                                           )}
+                                        </TableCell>
                                         <TableCell>
                                           {format(
                                             new Date(installment.due_date + "T00:00:00"),
@@ -1294,7 +1295,8 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                         </TableCell>
                                       </TableRow>
                                     );
-                                  })}
+                                  });
+                                  })()}
                                 </TableBody>
                               </Table>
                               </div>
