@@ -162,12 +162,12 @@ export function ExportPdfButton() {
             yPos = 20;
           }
 
-          const paidCount = loan.installments.filter((i) => i.paid).length;
           const totalCount = loan.installments.length;
-          const paidAmount = loan.installments
-            .filter((i) => i.paid)
-            .reduce((sum, i) => sum + i.amount, 0);
-          const remainingAmount = loan.original_amount - paidAmount;
+          const liquidadas = loan.installments.filter((i) => i.status === "liquidado").length;
+          const parciais = loan.installments.filter((i) => i.status === "parcial").length;
+          const totalAmountPaid = loan.installments.reduce((sum, i) => sum + (i.amount_paid || 0), 0);
+          const totalInstallmentsValue = loan.installments.reduce((sum, i) => sum + i.amount, 0);
+          const remainingPrincipal = Math.max(totalInstallmentsValue - totalAmountPaid, 0);
 
           // Interest calculations
           const totalInterest = loan.interest_rate > 0
@@ -175,6 +175,7 @@ export function ExportPdfButton() {
             : 0;
           const paidInterest = loan.interest_payments.reduce((sum, p) => sum + p.amount, 0);
           const remainingInterest = Math.max(totalInterest - paidInterest, 0);
+          const totalToReceive = remainingPrincipal + remainingInterest;
 
           // Loan summary
           doc.setFontSize(10);
@@ -186,64 +187,74 @@ export function ExportPdfButton() {
           doc.setFont("helvetica", "normal");
           doc.setFontSize(9);
 
-          // Principal info
-          doc.text(`Valor Principal: ${formatCurrency(loan.original_amount)}`, 14, yPos);
+          doc.text(`Valor Principal: ${formatCurrency(loan.original_amount)}  |  Parcelas: ${totalCount}x de ${formatCurrency(loan.original_amount / loan.installments_count)}`, 14, yPos);
           yPos += 5;
           doc.text(
-            `Parcelas (Principal): ${paidCount}/${totalCount} pagas  |  Pago: ${formatCurrency(paidAmount)}  |  Restante: ${formatCurrency(Math.max(remainingAmount, 0))}`,
-            14,
-            yPos
+            `Parcelas: ${liquidadas} liquidadas, ${parciais} parciais, ${totalCount - liquidadas - parciais} pendentes`,
+            14, yPos
           );
           yPos += 5;
+          doc.text(`Pago (Principal): ${formatCurrency(totalAmountPaid)}  |  Restante (Principal): ${formatCurrency(remainingPrincipal)}`, 14, yPos);
+          yPos += 5;
 
-          // Interest info
           if (loan.interest_rate > 0) {
-            doc.setFont("helvetica", "bold");
-            doc.text(
-              `Juros (${loan.interest_rate}%): Total ${formatCurrency(totalInterest)}  |  Pago: ${formatCurrency(paidInterest)}  |  Restante: ${formatCurrency(remainingInterest)}`,
-              14,
-              yPos
-            );
-            doc.setFont("helvetica", "normal");
-            yPos += 6;
-          } else {
-            yPos += 1;
+            doc.text(`Juros (${loan.interest_rate}%): Total ${formatCurrency(totalInterest)}  |  Pago: ${formatCurrency(paidInterest)}  |  Restante: ${formatCurrency(remainingInterest)}`, 14, yPos);
+            yPos += 5;
           }
 
-          // Installments table - with paid_at date
-          const tableData = loan.installments.map((inst) => [
-            `${inst.installment_number}/${totalCount}`,
-            formatCurrency(inst.amount),
-            format(new Date(inst.due_date + "T00:00:00"), "dd/MM/yyyy"),
-            inst.paid ? "Pago" : "Pendente",
-            inst.paid && inst.paid_at
-              ? format(new Date(inst.paid_at), "dd/MM/yyyy", { locale: ptBR })
-              : "-",
-          ]);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.text(`>>> Total a Receber: ${formatCurrency(totalToReceive)}`, 14, yPos);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+          yPos += 7;
+
+          // Installments table
+          const tableData = loan.installments.map((inst) => {
+            const amtPaid = inst.amount_paid || 0;
+            const remaining = Math.max(inst.amount - amtPaid, 0);
+            const statusLabel = inst.status === "liquidado" ? "Liquidado" : inst.status === "parcial" ? "Parcial" : "Pendente";
+            return [
+              `${inst.installment_number}/${totalCount}`,
+              formatCurrency(inst.amount),
+              formatCurrency(amtPaid),
+              formatCurrency(remaining),
+              format(new Date(inst.due_date + "T00:00:00"), "dd/MM/yyyy"),
+              statusLabel,
+              inst.paid && inst.paid_at
+                ? format(new Date(inst.paid_at), "dd/MM/yyyy", { locale: ptBR })
+                : "-",
+            ];
+          });
 
           autoTable(doc, {
             startY: yPos,
-            head: [["Parcela", "Valor", "Vencimento", "Status", "Pago em"]],
+            head: [["Parcela", "Valor", "Pago", "Restante", "Vencimento", "Status", "Pago em"]],
             body: tableData,
             theme: "grid",
             headStyles: {
               fillColor: [59, 130, 246],
-              fontSize: 8,
+              fontSize: 7,
               fontStyle: "bold",
             },
-            bodyStyles: { fontSize: 8 },
+            bodyStyles: { fontSize: 7 },
             columnStyles: {
-              0: { halign: "center", cellWidth: 22 },
-              1: { halign: "right", cellWidth: 30 },
-              2: { halign: "center", cellWidth: 28 },
-              3: { halign: "center", cellWidth: 22 },
-              4: { halign: "center", cellWidth: 28 },
+              0: { halign: "center", cellWidth: 18 },
+              1: { halign: "right", cellWidth: 24 },
+              2: { halign: "right", cellWidth: 24 },
+              3: { halign: "right", cellWidth: 24 },
+              4: { halign: "center", cellWidth: 24 },
+              5: { halign: "center", cellWidth: 22 },
+              6: { halign: "center", cellWidth: 24 },
             },
             margin: { left: 14, right: 14 },
             didParseCell: (data) => {
-              if (data.section === "body" && data.column.index === 3) {
-                if (data.cell.raw === "Pago") {
+              if (data.section === "body" && data.column.index === 5) {
+                if (data.cell.raw === "Liquidado") {
                   data.cell.styles.textColor = [22, 163, 74];
+                  data.cell.styles.fontStyle = "bold";
+                } else if (data.cell.raw === "Parcial") {
+                  data.cell.styles.textColor = [234, 179, 8];
                   data.cell.styles.fontStyle = "bold";
                 } else {
                   data.cell.styles.textColor = [220, 38, 38];
