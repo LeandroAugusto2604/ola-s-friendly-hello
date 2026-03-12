@@ -15,7 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, ArrowRight, Search } from "lucide-react";
+import { Loader2, Search, UserPlus } from "lucide-react";
 
 const clientSchema = z.object({
   fullName: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
@@ -28,10 +28,10 @@ const clientSchema = z.object({
 export type ClientFormData = z.infer<typeof clientSchema>;
 
 interface ClientFormProps {
-  onClientReady: (clientId: string, clientName: string) => void;
+  onSuccess: () => void;
 }
 
-export function ClientForm({ onClientReady }: ClientFormProps) {
+export function ClientForm({ onSuccess }: ClientFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const { user } = useAuth();
@@ -67,7 +67,6 @@ export function ClientForm({ onClientReady }: ClientFormProps) {
   const searchByCPF = async () => {
     const cpf = form.getValues("cpf");
     if (!cpf || !user) return;
-    
     const cpfClean = cpf.replace(/\D/g, "");
     if (cpfClean.length < 11) return;
 
@@ -81,16 +80,13 @@ export function ClientForm({ onClientReady }: ClientFormProps) {
         .maybeSingle();
 
       if (existing) {
-        toast({
-          title: "Cliente encontrado!",
-          description: `${existing.full_name} já está cadastrado. Prosseguindo para configurar o empréstimo.`,
-        });
-        onClientReady(existing.id, existing.full_name);
+        form.setValue("fullName", existing.full_name);
+        form.setValue("address", existing.address);
+        form.setValue("rg", existing.rg);
+        form.setValue("phone", existing.phone || "");
+        toast({ title: "Cliente já cadastrado!", description: `${existing.full_name} já existe. Adicione empréstimos diretamente na lista.` });
       } else {
-        toast({
-          title: "Cliente não encontrado",
-          description: "Preencha os dados para cadastrar um novo cliente.",
-        });
+        toast({ title: "Cliente não encontrado", description: "Preencha os dados para cadastrar." });
       }
     } catch (error: any) {
       console.error(error);
@@ -111,17 +107,18 @@ export function ClientForm({ onClientReady }: ClientFormProps) {
 
       const { data: existing } = await supabase
         .from("clients")
-        .select("*")
+        .select("id")
         .eq("cpf", cpfClean)
         .eq("user_id", user.id)
         .maybeSingle();
 
       if (existing) {
-        onClientReady(existing.id, existing.full_name);
+        toast({ title: "Cliente já existe!", description: "Adicione empréstimos diretamente na lista." });
+        onSuccess();
         return;
       }
 
-      const { data: newClient, error } = await supabase
+      const { error } = await supabase
         .from("clients")
         .insert({
           full_name: data.fullName,
@@ -130,14 +127,13 @@ export function ClientForm({ onClientReady }: ClientFormProps) {
           cpf: cpfClean,
           phone: data.phone.replace(/\D/g, ""),
           user_id: user.id,
-        })
-        .select()
-        .single();
+        });
 
       if (error) throw error;
 
-      toast({ title: "Cliente cadastrado!", description: `${data.fullName} foi cadastrado com sucesso.` });
-      onClientReady(newClient.id, newClient.full_name);
+      toast({ title: "Cliente cadastrado!", description: `${data.fullName} foi cadastrado. Agora adicione um empréstimo na lista.` });
+      form.reset();
+      onSuccess();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message || "Tente novamente", variant: "destructive" });
     } finally {
@@ -149,7 +145,7 @@ export function ClientForm({ onClientReady }: ClientFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-          💡 Digite o CPF e clique em buscar para verificar se o cliente já existe, ou preencha todos os dados para cadastrar um novo.
+          💡 Cadastre o cliente primeiro. Depois, adicione empréstimos diretamente no perfil dele.
         </div>
 
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
@@ -168,13 +164,7 @@ export function ClientForm({ onClientReady }: ClientFormProps) {
                       maxLength={14}
                     />
                   </FormControl>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={searchByCPF}
-                    disabled={isSearching}
-                  >
+                  <Button type="button" variant="outline" size="icon" onClick={searchByCPF} disabled={isSearching}>
                     {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                   </Button>
                 </div>
@@ -183,66 +173,39 @@ export function ClientForm({ onClientReady }: ClientFormProps) {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="fullName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nome Completo</FormLabel>
-                <FormControl>
-                  <Input placeholder="João da Silva" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <FormField control={form.control} name="fullName" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nome Completo</FormLabel>
+              <FormControl><Input placeholder="João da Silva" {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
 
-          <FormField
-            control={form.control}
-            name="address"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Endereço</FormLabel>
-                <FormControl>
-                  <Input placeholder="Rua, número, bairro, cidade" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <FormField control={form.control} name="address" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Endereço</FormLabel>
+              <FormControl><Input placeholder="Rua, número, bairro, cidade" {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
 
-          <FormField
-            control={form.control}
-            name="rg"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>RG</FormLabel>
-                <FormControl>
-                  <Input placeholder="00.000.000-0" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <FormField control={form.control} name="rg" render={({ field }) => (
+            <FormItem>
+              <FormLabel>RG</FormLabel>
+              <FormControl><Input placeholder="00.000.000-0" {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
 
-          <FormField
-            control={form.control}
-            name="phone"
-            render={({ field }) => (
-              <FormItem className="sm:col-span-2">
-                <FormLabel>Celular</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="(00) 00000-0000"
-                    {...field}
-                    onChange={(e) => field.onChange(formatPhone(e.target.value))}
-                    maxLength={15}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <FormField control={form.control} name="phone" render={({ field }) => (
+            <FormItem className="sm:col-span-2">
+              <FormLabel>Celular</FormLabel>
+              <FormControl>
+                <Input placeholder="(00) 00000-0000" {...field} onChange={(e) => field.onChange(formatPhone(e.target.value))} maxLength={15} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
         </div>
 
         <Button type="submit" className="w-full h-12 gradient-primary border-0 shadow-soft hover:opacity-90 transition-smooth text-base gap-2" disabled={isLoading}>
@@ -253,8 +216,8 @@ export function ClientForm({ onClientReady }: ClientFormProps) {
             </>
           ) : (
             <>
-              Cadastrar e Continuar
-              <ArrowRight className="h-5 w-5" />
+              <UserPlus className="h-5 w-5" />
+              Cadastrar Cliente
             </>
           )}
         </Button>

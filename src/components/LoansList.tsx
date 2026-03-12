@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { LoanConfigForm } from "@/components/LoanConfigForm";
 import { v4 as uuidv4 } from "uuid";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -53,7 +54,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { format, differenceInCalendarDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle2, Clock, FileDown, FileText, Pencil, Search, Trash2, User, MessageCircle, Copy, Eye, Send, Loader2 } from "lucide-react";
+import { CheckCircle2, Clock, FileDown, FileText, Pencil, Plus, Search, Trash2, User, MessageCircle, Copy, Eye, Send, Loader2 } from "lucide-react";
 import { EditClientDialog } from "@/components/EditClientDialog";
 import { EditLoanDialog } from "@/components/EditLoanDialog";
 import { InterestPaymentDialog } from "@/components/InterestPaymentDialog";
@@ -130,6 +131,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
     amountPaid: number;
     interestRate: number;
   } | null>(null);
+  const [addingLoanToClient, setAddingLoanToClient] = useState<{ id: string; name: string } | null>(null);
 
   const { data: clients, isLoading, refetch } = useQuery({
     queryKey: ["clients-with-loans", refreshKey],
@@ -737,7 +739,15 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                             </p>
                           )}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Button
+                            size="sm"
+                            className="gap-1 gradient-primary border-0 hover:opacity-90"
+                            onClick={() => setAddingLoanToClient({ id: client.id, name: client.full_name })}
+                          >
+                            <Plus className="h-4 w-4" />
+                            Novo Empréstimo
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
@@ -1307,6 +1317,21 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
           onOpenChange={(open) => { if (!open) setPartialPayment(null); }}
           onSuccess={() => { refetch(); onDataChange?.(); }}
         />
+      )}
+      {addingLoanToClient && (
+        <Dialog open={!!addingLoanToClient} onOpenChange={(open) => { if (!open) setAddingLoanToClient(null); }}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto shadow-hover" onPointerDownOutside={(e) => e.preventDefault()}>
+            <DialogHeader>
+              <DialogTitle className="text-xl">Novo Empréstimo — {addingLoanToClient.name}</DialogTitle>
+            </DialogHeader>
+            <LoanConfigForm
+              clientId={addingLoanToClient.id}
+              clientName={addingLoanToClient.name}
+              onSuccess={() => { setAddingLoanToClient(null); refetch(); onDataChange?.(); }}
+              onBack={() => setAddingLoanToClient(null)}
+            />
+          </DialogContent>
+        </Dialog>
       )}
     </Card>
   );

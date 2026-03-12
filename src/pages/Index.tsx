@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { LoanForm } from "@/components/LoanForm";
+import { ClientForm } from "@/components/ClientForm";
 import { LoansList } from "@/components/LoansList";
 import { DashboardStats } from "@/components/DashboardStats";
 import { OverdueAlert } from "@/components/OverdueAlert";
@@ -119,31 +119,21 @@ function DashboardContent() {
               <ExportPdfButton />
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button size="lg" className="gap-2 shadow-soft gradient-primary border-0 hover:opacity-90 transition-smooth">
+              <Button size="lg" className="gap-2 shadow-soft gradient-primary border-0 hover:opacity-90 transition-smooth">
                     <Plus className="h-5 w-5" />
-                    <span className="hidden sm:inline">Novo Empréstimo</span>
+                    <span className="hidden sm:inline">Novo Cliente</span>
                     <span className="sm:hidden">Novo</span>
                   </Button>
                 </DialogTrigger>
               <DialogContent 
-                className="max-w-2xl max-h-[90vh] overflow-y-auto shadow-hover"
+                className="max-w-lg max-h-[90vh] overflow-y-auto shadow-hover"
                 onPointerDownOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
               >
-                <DialogHeader className="flex flex-row items-center justify-between">
-                  <DialogTitle className="text-xl">Cadastrar Novo Empréstimo</DialogTitle>
+                <DialogHeader>
+                  <DialogTitle className="text-xl">Cadastrar Novo Cliente</DialogTitle>
                 </DialogHeader>
-                <LoanForm onSuccess={handleLoanSuccess} />
-                <div className="flex justify-end pt-4 border-t">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsDialogOpen(false)}
-                    className="gap-2"
-                  >
-                    <X className="h-4 w-4" />
-                    Cancelar
-                  </Button>
-                </div>
+                <ClientForm onSuccess={handleLoanSuccess} />
               </DialogContent>
             </Dialog>
             </div>
