@@ -847,7 +847,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      className="gap-1"
+                                      className="gap-1 text-xs h-7 sm:h-8"
                                       onClick={() => setAdvancePayment({
                                         loanId: loan.id,
                                         originalAmount: Number(loan.original_amount),
