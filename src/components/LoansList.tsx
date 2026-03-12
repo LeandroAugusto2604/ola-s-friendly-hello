@@ -435,6 +435,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
 
       const todayPdf = new Date();
       todayPdf.setHours(0, 0, 0, 0);
+      const interestRateDecimal = Number(loan.interest_rate || 0) / 100;
       const tableData = loan.installments.map((inst) => {
         const dueDate = new Date(inst.due_date + "T00:00:00");
         const isOverdue = !inst.paid && dueDate < todayPdf;
@@ -446,12 +447,14 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
           : formatCurrency(Number(inst.amount));
         const amtPaid = Number(inst.amount_paid || 0);
         const remaining = Math.max(Number(inst.amount) - amtPaid, 0);
+        const remainingWithInterest = remaining + (remaining * interestRateDecimal);
         const statusLabel = inst.status === "liquidado" ? "Liquidado" : inst.status === "parcial" ? "Parcial" : isOverdue ? "Vencida" : "Pendente";
         return [
           `${inst.installment_number}/${totalCount}`,
           valorText,
           formatCurrency(amtPaid),
           formatCurrency(remaining),
+          formatCurrency(remainingWithInterest),
           format(dueDate, "dd/MM/yyyy"),
           statusLabel,
           inst.paid && inst.paid_at
@@ -462,23 +465,24 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
 
       autoTable(doc, {
         startY: yPos,
-        head: [["Parcela", "Valor", "Pago", "Restante", "Vencimento", "Status", "Pago em"]],
+        head: [["Parcela", "Valor", "Pago", "Restante", "Rest. + Juros", "Vencimento", "Status", "Pago em"]],
         body: tableData,
         theme: "grid",
-        headStyles: { fillColor: [59, 130, 246], fontSize: 7, fontStyle: "bold" },
-        bodyStyles: { fontSize: 7 },
+        headStyles: { fillColor: [59, 130, 246], fontSize: 6.5, fontStyle: "bold" },
+        bodyStyles: { fontSize: 6.5 },
         columnStyles: {
-          0: { halign: "center", cellWidth: 18 },
-          1: { halign: "right", cellWidth: 24 },
-          2: { halign: "right", cellWidth: 24 },
-          3: { halign: "right", cellWidth: 24 },
-          4: { halign: "center", cellWidth: 24 },
+          0: { halign: "center", cellWidth: 16 },
+          1: { halign: "right", cellWidth: 22 },
+          2: { halign: "right", cellWidth: 22 },
+          3: { halign: "right", cellWidth: 22 },
+          4: { halign: "right", cellWidth: 24 },
           5: { halign: "center", cellWidth: 22 },
-          6: { halign: "center", cellWidth: 24 },
+          6: { halign: "center", cellWidth: 18 },
+          7: { halign: "center", cellWidth: 22 },
         },
-        margin: { left: 14, right: 14 },
+        margin: { left: 10, right: 10 },
         didParseCell: (data) => {
-          if (data.section === "body" && data.column.index === 5) {
+          if (data.section === "body" && data.column.index === 6) {
             if (data.cell.raw === "Liquidado") {
               data.cell.styles.textColor = [22, 163, 74];
               data.cell.styles.fontStyle = "bold";
