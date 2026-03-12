@@ -432,10 +432,12 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
         const instPaid = Number(inst.amount_paid || 0);
         const effectivePrincipal = Math.max(instAmt - pdfCredit, 0);
         pdfCredit = Math.max(pdfCredit - instAmt, 0);
-        const overpayment = Math.max(instPaid - effectivePrincipal, 0);
+        const jurosOnBalance = balanceBefore * interestRateDecimal;
+        const totalDue = effectivePrincipal + jurosOnBalance;
+        const overpayment = Math.max(instPaid - totalDue, 0);
         pdfCredit += overpayment;
-        const principalDeducted = Math.min(instPaid > 0 ? Math.max(instPaid, effectivePrincipal) : effectivePrincipal, pdfRunningBalance);
-        pdfRunningBalance = Math.max(pdfRunningBalance - principalDeducted, 0);
+        const principalPaid = effectivePrincipal + overpayment;
+        pdfRunningBalance = Math.max(pdfRunningBalance - principalPaid, 0);
         const dueDate = new Date(inst.due_date + "T00:00:00");
         const isOverdue = !inst.paid && dueDate < todayPdf;
         const daysLate = isOverdue ? differenceInCalendarDays(todayPdf, dueDate) : 0;
