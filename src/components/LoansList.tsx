@@ -131,6 +131,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
     amount: number;
     amountPaid: number;
     interestRate: number;
+    loanBalanceBefore: number;
   } | null>(null);
   const [addingLoanToClient, setAddingLoanToClient] = useState<{ id: string; name: string } | null>(null);
   const [advancePayment, setAdvancePayment] = useState<{
