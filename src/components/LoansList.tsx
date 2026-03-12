@@ -57,6 +57,7 @@ import { CheckCircle2, Clock, FileDown, FileText, Pencil, Search, Trash2, User, 
 import { EditClientDialog } from "@/components/EditClientDialog";
 import { EditLoanDialog } from "@/components/EditLoanDialog";
 import { InterestPaymentDialog } from "@/components/InterestPaymentDialog";
+import { PartialPaymentDialog } from "@/components/PartialPaymentDialog";
 
 interface Installment {
   id: string;
