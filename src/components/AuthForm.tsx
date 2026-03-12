@@ -183,6 +183,10 @@ export function AuthForm() {
                       )}
                     />
 
+                    <div className="flex justify-end">
+                      <ForgotPasswordDialog />
+                    </div>
+
                     <Button 
                       type="submit" 
                       className="w-full h-11 gradient-primary border-0 shadow-soft hover:opacity-90 transition-smooth" 
