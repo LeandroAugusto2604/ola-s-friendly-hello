@@ -18,6 +18,7 @@ interface PartialPaymentDialogProps {
   installmentAmount: number;
   amountPaid: number;
   interestRate: number;
+  loanBalanceBefore: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
@@ -29,6 +30,7 @@ export function PartialPaymentDialog({
   installmentAmount,
   amountPaid,
   interestRate,
+  loanBalanceBefore,
   open,
   onOpenChange,
   onSuccess,
@@ -37,8 +39,8 @@ export function PartialPaymentDialog({
   const [saving, setSaving] = useState(false);
 
   const remainingBalance = installmentAmount - amountPaid;
-  const monthlyInterestOnRemaining = remainingBalance * (interestRate / 100);
-  const totalDue = remainingBalance + monthlyInterestOnRemaining;
+  const interestOnLoanBalance = loanBalanceBefore * (interestRate / 100);
+  const totalDue = remainingBalance + interestOnLoanBalance;
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -110,8 +112,12 @@ export function PartialPaymentDialog({
               <>
                 <div className="border-t border-border pt-2 mt-2" />
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Juros mensal ({interestRate}%):</span>
-                  <span className="font-semibold text-amber-600">{formatCurrency(monthlyInterestOnRemaining)}</span>
+                  <span className="text-muted-foreground">Saldo devedor do empréstimo:</span>
+                  <span className="font-semibold">{formatCurrency(loanBalanceBefore)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Juros mensal ({interestRate}%) sobre saldo:</span>
+                  <span className="font-semibold text-amber-600">{formatCurrency(interestOnLoanBalance)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total com juros:</span>
