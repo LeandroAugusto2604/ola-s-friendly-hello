@@ -1120,7 +1120,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                         <TableCell>
                                           {instStatus !== "liquidado" ? (
                                             <div>
-                                              <span className="font-bold text-foreground">{formatCurrency(instAmount + juros)}</span>
+                                              <span className="font-bold text-foreground">{formatCurrency(effectivePrincipal + juros)}</span>
                                               {rate > 0 && <span className="block text-xs text-amber-600">+{formatCurrency(juros)} juros</span>}
                                             </div>
                                           ) : (
