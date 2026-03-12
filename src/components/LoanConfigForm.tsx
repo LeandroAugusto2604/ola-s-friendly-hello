@@ -1,7 +1,4 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,28 +10,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from "@/components/ui/form";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Loader2, ArrowLeft, CheckCircle } from "lucide-react";
+import { CalendarIcon, Loader2, ArrowLeft, CheckCircle, Plus, Trash2 } from "lucide-react";
 
-const loanSchema = z.object({
-  amount: z.string().refine((val) => parseFloat(val) > 0, "Valor deve ser maior que 0"),
-  interestRate: z.string().refine((val) => parseFloat(val) >= 0 && parseFloat(val) <= 100, "Juros deve ser entre 0% e 100%"),
-  installmentsCount: z.string().refine((val) => parseInt(val) >= 1 && parseInt(val) <= 48, "Parcelas deve ser entre 1 e 48"),
-  dailyLateFee: z.string().refine((val) => parseFloat(val) >= 0, "Valor deve ser >= 0"),
-  firstDueDate: z.date({ required_error: "Selecione a data do primeiro vencimento" }),
-});
-
-type LoanFormData = z.infer<typeof loanSchema>;
+interface PlannedInstallment {
+  id: string;
+  amount: string;
+  dueDate: Date | undefined;
+}
 
 interface LoanConfigFormProps {
   clientId: string;
@@ -43,109 +27,105 @@ interface LoanConfigFormProps {
   onBack: () => void;
 }
 
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+
 export function LoanConfigForm({ clientId, clientName, onSuccess, onBack }: LoanConfigFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [loanAmount, setLoanAmount] = useState("");
+  const [interestRate, setInterestRate] = useState("0");
+  const [dailyLateFee, setDailyLateFee] = useState("0");
+  const [installments, setInstallments] = useState<PlannedInstallment[]>([]);
 
-  const form = useForm<LoanFormData>({
-    resolver: zodResolver(loanSchema),
-    defaultValues: {
-      amount: "",
-      interestRate: "0",
-      installmentsCount: "12",
-      dailyLateFee: "0",
-      firstDueDate: undefined,
-    },
-  });
+  const amount = parseFloat(loanAmount) || 0;
+  const rate = parseFloat(interestRate) || 0;
 
-  // Live preview with interest on remaining balance
-  const watchedAmount = parseFloat(form.watch("amount")) || 0;
-  const watchedInterest = parseFloat(form.watch("interestRate")) || 0;
-  const watchedInstallments = parseInt(form.watch("installmentsCount")) || 1;
-
-  // Calculate with interest on remaining balance (declining balance)
-  const calculateInstallments = (principal: number, monthlyRate: number, numInstallments: number) => {
-    const basePortion = principal / numInstallments;
-    const rate = monthlyRate / 100;
-    let balance = principal;
-    const schedule = [];
-
-    for (let i = 0; i < numInstallments; i++) {
-      const interest = balance * rate;
-      const installmentTotal = basePortion + interest;
-      balance = Math.max(balance - basePortion, 0);
-
-      schedule.push({
-        number: i + 1,
-        installment: installmentTotal,
-        interest,
-        amortization: basePortion,
-        balance,
-      });
-    }
-
-    const totalInterest = schedule.reduce((s, r) => s + r.interest, 0);
-    const totalWithInterest = principal + totalInterest;
-
-    return {
-      installmentValue: basePortion,
-      totalWithInterest,
-      totalInterest,
-      schedule,
-    };
+  // Calculate running balance and interest for each installment
+  const getSchedule = () => {
+    let balance = amount;
+    return installments.map((inst) => {
+      const instValue = parseFloat(inst.amount) || 0;
+      const interestOnBalance = balance * (rate / 100);
+      const totalPayment = instValue + interestOnBalance;
+      balance = Math.max(balance - instValue, 0);
+      return {
+        ...inst,
+        instValue,
+        interestOnBalance,
+        totalPayment,
+        balanceAfter: balance,
+      };
+    });
   };
 
-  const preview = calculateInstallments(watchedAmount, watchedInterest, watchedInstallments);
+  const schedule = getSchedule();
+  const totalAllocated = schedule.reduce((s, r) => s + r.instValue, 0);
+  const remaining = Math.max(amount - totalAllocated, 0);
+  const totalInterest = schedule.reduce((s, r) => s + r.interestOnBalance, 0);
 
-  const onSubmit = async (data: LoanFormData) => {
+  const addInstallment = () => {
+    const suggestedValue = remaining > 0 ? remaining.toFixed(2) : "";
+    setInstallments((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), amount: suggestedValue, dueDate: undefined },
+    ]);
+  };
+
+  const updateInstallment = (id: string, field: keyof PlannedInstallment, value: any) => {
+    setInstallments((prev) =>
+      prev.map((inst) => (inst.id === id ? { ...inst, [field]: value } : inst))
+    );
+  };
+
+  const removeInstallment = (id: string) => {
+    setInstallments((prev) => prev.filter((inst) => inst.id !== id));
+  };
+
+  const canSave =
+    amount > 0 &&
+    installments.length > 0 &&
+    Math.abs(totalAllocated - amount) < 0.02 &&
+    installments.every((i) => (parseFloat(i.amount) || 0) > 0 && i.dueDate);
+
+  const onSubmit = async () => {
+    if (!canSave) return;
     setIsLoading(true);
     try {
-      const amount = parseFloat(data.amount);
-      const interestRate = parseFloat(data.interestRate);
-      const installmentsCount = parseInt(data.installmentsCount);
-      const dailyLateFee = parseFloat(data.dailyLateFee);
-
-      const calc = calculateInstallments(amount, interestRate, installmentsCount);
+      const totalWithInterest = amount + totalInterest;
 
       const { data: loan, error: loanError } = await supabase
         .from("loans")
         .insert({
           client_id: clientId,
           original_amount: amount,
-          amount: calc.totalWithInterest,
-          interest_rate: interestRate,
-          installments_count: installmentsCount,
-          daily_late_fee: dailyLateFee,
+          amount: totalWithInterest,
+          interest_rate: rate,
+          installments_count: installments.length,
+          daily_late_fee: parseFloat(dailyLateFee) || 0,
         } as any)
         .select()
         .single();
 
       if (loanError) throw loanError;
 
-      // Generate installments with interest already included in each
-      const firstDueDate = data.firstDueDate;
-      const installments = calc.schedule.map((item, i) => {
-        const dueDate = new Date(firstDueDate);
-        dueDate.setMonth(dueDate.getMonth() + i);
-        return {
-          loan_id: loan.id,
-          installment_number: item.number,
-          amount: parseFloat(item.installment.toFixed(2)),
-          due_date: dueDate.toISOString().split("T")[0],
-        };
-      });
+      const installmentRows = schedule.map((item, i) => ({
+        loan_id: loan.id,
+        installment_number: i + 1,
+        amount: parseFloat(item.instValue.toFixed(2)),
+        due_date: item.dueDate!.toISOString().split("T")[0],
+      }));
 
-      const { error: installmentsError } = await supabase
+      const { error: instError } = await supabase
         .from("installments")
-        .insert(installments);
+        .insert(installmentRows);
 
-      if (installmentsError) throw installmentsError;
+      if (instError) throw instError;
 
       toast({
         title: "Empréstimo cadastrado!",
-        description: `${installmentsCount}x de R$ ${calc.installmentValue.toFixed(2)} para ${clientName}. Total: R$ ${calc.totalWithInterest.toFixed(2)} (Juros: R$ ${calc.totalInterest.toFixed(2)})`,
+        description: `${installments.length} parcela(s) para ${clientName}. Total: ${formatCurrency(totalWithInterest)}`,
       });
 
-      form.reset();
       onSuccess();
     } catch (error: any) {
       console.error("Error creating loan:", error);
@@ -156,167 +136,220 @@ export function LoanConfigForm({ clientId, clientName, onSuccess, onBack }: Loan
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        {/* Client info banner */}
-        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm">
-            <CheckCircle className="h-4 w-4 text-primary" />
-            <span className="text-muted-foreground">Cliente:</span>
-            <strong className="text-foreground">{clientName}</strong>
+    <div className="space-y-5">
+      {/* Client info banner */}
+      <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm">
+          <CheckCircle className="h-4 w-4 text-primary" />
+          <span className="text-muted-foreground">Cliente:</span>
+          <strong className="text-foreground">{clientName}</strong>
+        </div>
+        <Button type="button" variant="ghost" size="sm" onClick={onBack} className="gap-1 text-xs">
+          <ArrowLeft className="h-3 w-3" />
+          Trocar
+        </Button>
+      </div>
+
+      {/* Loan basics */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Valor Emprestado (R$)</label>
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="10000.00"
+            value={loanAmount}
+            onChange={(e) => setLoanAmount(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Juros Mensal (%)</label>
+          <Input
+            type="number"
+            step="0.1"
+            min="0"
+            max="100"
+            placeholder="30"
+            value={interestRate}
+            onChange={(e) => setInterestRate(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Multa Diária Atraso (R$)</label>
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            value={dailyLateFee}
+            onChange={(e) => setDailyLateFee(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Payment Plan Builder */}
+      {amount > 0 && (
+        <div className="space-y-4">
+          {/* Summary bar */}
+          <div className="rounded-xl border border-border bg-muted/50 p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div>
+              <p className="text-muted-foreground text-xs">Emprestado</p>
+              <p className="font-bold text-foreground">{formatCurrency(amount)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Alocado em Parcelas</p>
+              <p className={cn("font-bold", totalAllocated > amount ? "text-destructive" : "text-foreground")}>
+                {formatCurrency(totalAllocated)}
+              </p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Falta Alocar</p>
+              <p className={cn("font-bold", remaining > 0.01 ? "text-amber-600" : "text-emerald-600")}>
+                {formatCurrency(remaining)}
+              </p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Total Juros</p>
+              <p className="font-bold text-foreground">{formatCurrency(totalInterest)}</p>
+            </div>
           </div>
-          <Button type="button" variant="ghost" size="sm" onClick={onBack} className="gap-1 text-xs">
-            <ArrowLeft className="h-3 w-3" />
-            Trocar
-          </Button>
-        </div>
 
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="amount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Valor do Empréstimo (R$)</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" min="0" placeholder="1000.00" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* Installments list */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-semibold text-foreground">📋 Plano de Pagamento</h4>
+              <Button type="button" size="sm" variant="outline" className="gap-1" onClick={addInstallment}>
+                <Plus className="h-4 w-4" />
+                Adicionar Parcela
+              </Button>
+            </div>
 
-          <FormField
-            control={form.control}
-            name="interestRate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Taxa de Juros Mensal (%)</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.1" min="0" max="100" placeholder="10" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="installmentsCount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Quantidade de Parcelas</FormLabel>
-                <FormControl>
-                  <Input type="number" min="1" max="48" placeholder="12" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="dailyLateFee"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Multa Diária por Atraso (R$)</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} />
-                </FormControl>
-                <FormDescription>Valor cobrado por dia de atraso</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="firstDueDate"
-            render={({ field }) => (
-              <FormItem className="flex flex-col sm:col-span-2">
-                <FormLabel>Data do Primeiro Vencimento</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
+            {installments.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground text-sm">
+                Clique em "Adicionar Parcela" para montar o plano de pagamento.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {schedule.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-border bg-background p-4 space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-foreground">
+                        Parcela {index + 1}
+                      </span>
                       <Button
-                        variant="outline"
-                        className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => removeInstallment(item.id)}
                       >
-                        {field.value ? format(field.value, "dd/MM/yyyy", { locale: ptBR }) : <span>Selecione a data</span>}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={ptBR} className="p-3 pointer-events-auto" />
-                  </PopoverContent>
-                </Popover>
-                <FormDescription>As demais parcelas terão vencimento mensal a partir desta data</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+                    </div>
 
-        {/* Live preview */}
-        {watchedAmount > 0 && (
-          <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-3">
-            <h4 className="font-semibold text-sm text-foreground">📊 Simulação do Empréstimo</h4>
-             <div className="grid grid-cols-2 gap-2 text-sm">
-               <div className="text-muted-foreground">Valor principal:</div>
-               <div className="text-foreground font-medium">R$ {watchedAmount.toFixed(2)}</div>
-               
-               <div className="text-muted-foreground">Total com juros:</div>
-               <div className="text-foreground font-medium">R$ {preview.totalWithInterest.toFixed(2)}</div>
-               
-               <div className="text-muted-foreground">Total de juros:</div>
-               <div className="text-foreground font-medium text-destructive">R$ {preview.totalInterest.toFixed(2)}</div>
-               
-               <div className="text-muted-foreground">Amortização por parcela:</div>
-               <div className="text-foreground font-bold">R$ {preview.installmentValue.toFixed(2)}</div>
-             </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground">Valor da Parcela (R$)</label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
+                          value={item.amount}
+                          onChange={(e) => updateInstallment(item.id, "amount", e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground">Data de Vencimento</label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn("w-full pl-3 text-left font-normal", !item.dueDate && "text-muted-foreground")}
+                            >
+                              {item.dueDate ? format(item.dueDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={item.dueDate}
+                              onSelect={(date) => updateInstallment(item.id, "dueDate", date)}
+                              initialFocus
+                              locale={ptBR}
+                              className="p-3 pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
 
-            {/* Mini schedule */}
-            {preview.schedule.length > 0 && watchedInterest > 0 && (
-              <div className="mt-3 max-h-40 overflow-y-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-border text-muted-foreground">
-                      <th className="text-left py-1 px-1">#</th>
-                      <th className="text-right py-1 px-1">Parcela</th>
-                      <th className="text-right py-1 px-1">Juros</th>
-                      <th className="text-right py-1 px-1">Amortização</th>
-                      <th className="text-right py-1 px-1">Saldo</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {preview.schedule.map((row) => (
-                      <tr key={row.number} className="border-b border-border/50">
-                        <td className="py-1 px-1">{row.number}</td>
-                        <td className="text-right py-1 px-1">R$ {row.installment.toFixed(2)}</td>
-                        <td className="text-right py-1 px-1 text-destructive">R$ {row.interest.toFixed(2)}</td>
-                        <td className="text-right py-1 px-1">R$ {row.amortization.toFixed(2)}</td>
-                        <td className="text-right py-1 px-1 font-medium">R$ {row.balance.toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    {/* Calculated info for this installment */}
+                    {item.instValue > 0 && (
+                      <div className="rounded-md bg-muted/80 p-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                        <div>
+                          <span className="text-muted-foreground">Amortização:</span>
+                          <p className="font-semibold text-foreground">{formatCurrency(item.instValue)}</p>
+                        </div>
+                        {rate > 0 && (
+                          <div>
+                            <span className="text-muted-foreground">Juros ({rate}%):</span>
+                            <p className="font-semibold text-amber-600">{formatCurrency(item.interestOnBalance)}</p>
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-muted-foreground">{rate > 0 ? "Total a pagar:" : "Valor:"}</span>
+                          <p className="font-bold text-foreground">{formatCurrency(item.totalPayment)}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Saldo após:</span>
+                          <p className={cn("font-semibold", item.balanceAfter > 0 ? "text-destructive" : "text-emerald-600")}>
+                            {formatCurrency(item.balanceAfter)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
-        )}
 
-        <Button type="submit" className="w-full h-12 gradient-primary border-0 shadow-soft hover:opacity-90 transition-smooth text-base gap-2" disabled={isLoading}>
-          {isLoading ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Cadastrando...
-            </>
-          ) : (
-            "Cadastrar Empréstimo"
+          {/* Validation messages */}
+          {totalAllocated > amount + 0.01 && (
+            <p className="text-sm text-destructive font-medium">
+              ⚠️ O total das parcelas ({formatCurrency(totalAllocated)}) excede o valor emprestado ({formatCurrency(amount)}).
+            </p>
           )}
-        </Button>
-      </form>
-    </Form>
+          {installments.length > 0 && remaining > 0.01 && totalAllocated <= amount && (
+            <p className="text-sm text-amber-600 font-medium">
+              ⚠️ Ainda falta alocar {formatCurrency(remaining)} em parcelas.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Submit */}
+      <Button
+        type="button"
+        className="w-full h-12 gradient-primary border-0 shadow-soft hover:opacity-90 transition-smooth text-base gap-2"
+        disabled={isLoading || !canSave}
+        onClick={onSubmit}
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="h-5 w-5 animate-spin" />
+            Cadastrando...
+          </>
+        ) : (
+          "Cadastrar Empréstimo"
+        )}
+      </Button>
+    </div>
   );
 }
