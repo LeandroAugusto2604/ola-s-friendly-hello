@@ -1265,6 +1265,18 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
           onSuccess={() => { refetch(); onDataChange?.(); }}
         />
       )}
+      {partialPayment && (
+        <PartialPaymentDialog
+          installmentId={partialPayment.installmentId}
+          installmentNumber={partialPayment.installmentNumber}
+          installmentAmount={partialPayment.amount}
+          amountPaid={partialPayment.amountPaid}
+          interestRate={partialPayment.interestRate}
+          open={!!partialPayment}
+          onOpenChange={(open) => { if (!open) setPartialPayment(null); }}
+          onSuccess={() => { refetch(); onDataChange?.(); }}
+        />
+      )}
     </Card>
   );
 }
