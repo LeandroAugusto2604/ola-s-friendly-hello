@@ -425,12 +425,17 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
       todayPdf.setHours(0, 0, 0, 0);
       const interestRateDecimal = Number(loan.interest_rate || 0) / 100;
       let pdfRunningBalance = Number(loan.original_amount);
+      let pdfCredit = 0;
       const tableData = loan.installments.map((inst) => {
         const balanceBefore = pdfRunningBalance;
         const instAmt = Number(inst.amount);
         const instPaid = Number(inst.amount_paid || 0);
-        // Only deduct the planned principal amount from balance
-        pdfRunningBalance = Math.max(pdfRunningBalance - instAmt, 0);
+        const effectivePrincipal = Math.max(instAmt - pdfCredit, 0);
+        pdfCredit = Math.max(pdfCredit - instAmt, 0);
+        const overpayment = Math.max(instPaid - effectivePrincipal, 0);
+        pdfCredit += overpayment;
+        const principalDeducted = Math.min(instPaid > 0 ? Math.max(instPaid, effectivePrincipal) : effectivePrincipal, pdfRunningBalance);
+        pdfRunningBalance = Math.max(pdfRunningBalance - principalDeducted, 0);
         const dueDate = new Date(inst.due_date + "T00:00:00");
         const isOverdue = !inst.paid && dueDate < todayPdf;
         const daysLate = isOverdue ? differenceInCalendarDays(todayPdf, dueDate) : 0;
