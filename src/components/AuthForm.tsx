@@ -17,6 +17,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, LogIn, UserPlus } from "lucide-react";
+import { ForgotPasswordDialog } from "./ForgotPasswordDialog";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -181,6 +182,10 @@ export function AuthForm() {
                         </FormItem>
                       )}
                     />
+
+                    <div className="flex justify-end">
+                      <ForgotPasswordDialog />
+                    </div>
 
                     <Button 
                       type="submit" 
