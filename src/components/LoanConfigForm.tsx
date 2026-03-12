@@ -262,19 +262,19 @@ export function LoanConfigForm({ clientId, clientName, onSuccess, onBack }: Loan
         {watchedAmount > 0 && (
           <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-3">
             <h4 className="font-semibold text-sm text-foreground">📊 Simulação do Empréstimo</h4>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="text-muted-foreground">Valor principal:</div>
-              <div className="text-foreground font-medium">R$ {watchedAmount.toFixed(2)}</div>
-              
-              <div className="text-muted-foreground">Total com juros:</div>
-              <div className="text-foreground font-medium">R$ {preview.totalWithInterest.toFixed(2)}</div>
-              
-              <div className="text-muted-foreground">Total de juros:</div>
-              <div className="text-foreground font-medium text-destructive">R$ {preview.totalInterest.toFixed(2)}</div>
-              
-              <div className="text-muted-foreground">Valor da parcela:</div>
-              <div className="text-foreground font-bold">{watchedInstallments}x de R$ {preview.installmentValue.toFixed(2)}</div>
-            </div>
+             <div className="grid grid-cols-2 gap-2 text-sm">
+               <div className="text-muted-foreground">Valor principal:</div>
+               <div className="text-foreground font-medium">R$ {watchedAmount.toFixed(2)}</div>
+               
+               <div className="text-muted-foreground">Total com juros:</div>
+               <div className="text-foreground font-medium">R$ {preview.totalWithInterest.toFixed(2)}</div>
+               
+               <div className="text-muted-foreground">Total de juros:</div>
+               <div className="text-foreground font-medium text-destructive">R$ {preview.totalInterest.toFixed(2)}</div>
+               
+               <div className="text-muted-foreground">Amortização por parcela:</div>
+               <div className="text-foreground font-bold">R$ {preview.installmentValue.toFixed(2)}</div>
+             </div>
 
             {/* Mini schedule */}
             {preview.schedule.length > 0 && watchedInterest > 0 && (
