@@ -1094,7 +1094,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                           {isOverdue && lateFee > 0 ? (
                                             <div>
                                               <span className="line-through text-muted-foreground text-xs">
-                                                {formatCurrency(instAmount)}
+                                                {formatCurrency(effectivePrincipal)}
                                               </span>
                                               <span className="block font-semibold text-destructive">
                                                 {formatCurrency(displayAmount)}
@@ -1103,8 +1103,20 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                                 +{daysLate}d × {formatCurrency(Number(loan.daily_late_fee))}
                                               </span>
                                             </div>
+                                          ) : effectivePrincipal < instAmount ? (
+                                            <div>
+                                              <span className="line-through text-muted-foreground text-xs">
+                                                {formatCurrency(instAmount)}
+                                              </span>
+                                              <span className="block font-semibold text-emerald-600">
+                                                {formatCurrency(effectivePrincipal)}
+                                              </span>
+                                              <span className="text-xs text-muted-foreground">
+                                                crédito anterior aplicado
+                                              </span>
+                                            </div>
                                           ) : (
-                                            formatCurrency(instAmount)
+                                            formatCurrency(effectivePrincipal)
                                           )}
                                         </TableCell>
                                         <TableCell>
