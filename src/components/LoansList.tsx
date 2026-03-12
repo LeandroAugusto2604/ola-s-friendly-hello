@@ -840,7 +840,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                               {/* Financial Summary Panel */}
                               <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-3 sm:p-5 space-y-2 sm:space-y-3">
                                 <div className="flex items-center justify-between">
-                                  <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                                  <h4 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1 sm:gap-2">
                                     📊 Resumo Financeiro
                                   </h4>
                                   {Math.max(Number(loan.original_amount) - totalPaid, 0) > 0 && (
