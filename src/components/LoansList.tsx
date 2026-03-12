@@ -768,8 +768,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                         client.loans.map((loan) => {
                           const paidCount = loan.installments.filter((i) => i.paid).length;
                           const totalPaid = loan.installments
-                            .filter((i) => i.paid)
-                            .reduce((sum, i) => sum + Number(i.amount), 0);
+                            .reduce((sum, i) => sum + Number(i.amount_paid || 0), 0);
                           const loanStatus = getLoanStatus(loan);
                           const today = new Date();
                           today.setHours(0, 0, 0, 0);
