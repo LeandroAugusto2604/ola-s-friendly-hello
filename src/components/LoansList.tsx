@@ -398,19 +398,8 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
       }
 
       const totalCount = loan.installments.length;
-      const liquidadas = loan.installments.filter((i) => i.status === "liquidado").length;
-      const parciais = loan.installments.filter((i) => i.status === "parcial").length;
       const totalAmountPaid = loan.installments.reduce((sum, i) => sum + Number(i.amount_paid || 0), 0);
-      const totalInstallmentsValue = loan.installments.reduce((sum, i) => sum + Number(i.amount), 0);
-      const remainingPrincipal = Math.max(totalInstallmentsValue - totalAmountPaid, 0);
-
-      // Interest calculations
-      const totalInterest = Number(loan.interest_rate) > 0
-        ? Number(loan.original_amount) * (Number(loan.interest_rate) / 100)
-        : 0;
-      const paidInterest = loan.interest_payments.reduce((sum, p) => sum + Number(p.amount), 0);
-      const remainingInterest = Math.max(totalInterest - paidInterest, 0);
-      const totalToReceive = remainingPrincipal + remainingInterest;
+      const saldoDevedor = Math.max(Number(loan.original_amount) - totalAmountPaid, 0);
 
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
@@ -420,29 +409,17 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
-      doc.text(`Valor Principal: ${formatCurrency(Number(loan.original_amount))}  |  Parcelas: ${totalCount}x de ${formatCurrency(Number(loan.original_amount) / loan.installments_count)}`, 14, yPos);
+      doc.text(`Valor Emprestado: ${formatCurrency(Number(loan.original_amount))}  |  Juros: ${loan.interest_rate || 0}%  |  Parcelas: ${totalCount}x`, 14, yPos);
       yPos += 5;
-      doc.text(`Parcelas: ${liquidadas} liquidadas, ${parciais} parciais, ${totalCount - liquidadas - parciais} pendentes`, 14, yPos);
+      doc.text(`Total Pago: ${formatCurrency(totalAmountPaid)}  |  Saldo Devedor: ${formatCurrency(saldoDevedor)}`, 14, yPos);
       yPos += 5;
-      doc.text(`Pago (Principal): ${formatCurrency(totalAmountPaid)}  |  Restante (Principal): ${formatCurrency(remainingPrincipal)}`, 14, yPos);
-      yPos += 5;
-
-      if (Number(loan.interest_rate) > 0) {
-        doc.text(`Juros (${loan.interest_rate}%): Total ${formatCurrency(totalInterest)}  |  Pago: ${formatCurrency(paidInterest)}  |  Restante: ${formatCurrency(remainingInterest)}`, 14, yPos);
-        yPos += 5;
-      }
 
       if (Number(loan.daily_late_fee) > 0) {
         doc.text(`Multa diária por atraso: ${formatCurrency(Number(loan.daily_late_fee))}/dia`, 14, yPos);
         yPos += 5;
       }
 
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.text(`>>> Total a Receber: ${formatCurrency(totalToReceive)}`, 14, yPos);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      yPos += 7;
+      yPos += 2;
 
       const todayPdf = new Date();
       todayPdf.setHours(0, 0, 0, 0);
@@ -472,28 +449,24 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
           formatCurrency(totalComJuros),
           format(dueDate, "dd/MM/yyyy"),
           statusLabel,
-          inst.paid && inst.paid_at
-            ? format(new Date(inst.paid_at), "dd/MM/yyyy", { locale: ptBR })
-            : "-",
         ];
       });
 
       autoTable(doc, {
         startY: yPos,
-        head: [["Parcela", "Valor", "Pago", "Restante", "Rest. + Juros", "Vencimento", "Status", "Pago em"]],
+        head: [["Parcela", "Valor", "Pago", "Restante", "Rest. + Juros", "Vencimento", "Status"]],
         body: tableData,
         theme: "grid",
-        headStyles: { fillColor: [59, 130, 246], fontSize: 6.5, fontStyle: "bold" },
-        bodyStyles: { fontSize: 6.5 },
+        headStyles: { fillColor: [59, 130, 246], fontSize: 7, fontStyle: "bold" },
+        bodyStyles: { fontSize: 7 },
         columnStyles: {
-          0: { halign: "center", cellWidth: 16 },
-          1: { halign: "right", cellWidth: 22 },
-          2: { halign: "right", cellWidth: 22 },
-          3: { halign: "right", cellWidth: 22 },
-          4: { halign: "right", cellWidth: 24 },
-          5: { halign: "center", cellWidth: 22 },
-          6: { halign: "center", cellWidth: 18 },
-          7: { halign: "center", cellWidth: 22 },
+          0: { halign: "center", cellWidth: 18 },
+          1: { halign: "right", cellWidth: 26 },
+          2: { halign: "right", cellWidth: 26 },
+          3: { halign: "right", cellWidth: 26 },
+          4: { halign: "right", cellWidth: 26 },
+          5: { halign: "center", cellWidth: 24 },
+          6: { halign: "center", cellWidth: 20 },
         },
         margin: { left: 10, right: 10 },
         didParseCell: (data) => {
@@ -511,65 +484,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
         },
       });
 
-      yPos = (doc as any).lastAutoTable.finalY + 6;
-
-      // Interest section
-      if (Number(loan.interest_rate) > 0) {
-        if (yPos > 250) {
-          doc.addPage();
-          yPos = 20;
-        }
-
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        doc.text(`Juros (${loan.interest_rate}%)`, 14, yPos);
-        yPos += 5;
-
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
-        doc.text(
-          `Total: ${formatCurrency(totalInterest)}  |  Pago: ${formatCurrency(paidInterest)}  |  Restante: ${formatCurrency(remainingInterest)}`,
-          14,
-          yPos
-        );
-        yPos += 5;
-
-        if (loan.interest_payments.length > 0) {
-          const interestTableData = loan.interest_payments.map((p) => [
-            format(new Date(p.paid_at), "dd/MM/yyyy", { locale: ptBR }),
-            formatCurrency(Number(p.amount)),
-            p.notes || "-",
-          ]);
-
-          autoTable(doc, {
-            startY: yPos,
-            head: [["Data Pagamento", "Valor Pago", "Observação"]],
-            body: interestTableData,
-            theme: "grid",
-            headStyles: {
-              fillColor: [234, 179, 8],
-              textColor: [0, 0, 0],
-              fontSize: 8,
-              fontStyle: "bold",
-            },
-            bodyStyles: { fontSize: 8 },
-            columnStyles: {
-              0: { halign: "center", cellWidth: 30 },
-              1: { halign: "right", cellWidth: 35 },
-              2: { cellWidth: 80 },
-            },
-            margin: { left: 14, right: 14 },
-          });
-
-          yPos = (doc as any).lastAutoTable.finalY + 10;
-        } else {
-          doc.setFontSize(8);
-          doc.text("Nenhum pagamento de juros registrado.", 14, yPos);
-          yPos += 8;
-        }
-      } else {
-        yPos += 4;
-      }
+      yPos = (doc as any).lastAutoTable.finalY + 10;
     }
 
     const safeName = client.full_name.replace(/\s+/g, "-").toLowerCase();
