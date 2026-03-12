@@ -65,6 +65,8 @@ interface Installment {
   due_date: string;
   paid: boolean;
   paid_at: string | null;
+  amount_paid: number;
+  status: string;
 }
 
 interface IdentityVerification {
