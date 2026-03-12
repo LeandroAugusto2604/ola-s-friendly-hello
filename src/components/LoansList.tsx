@@ -1159,13 +1159,14 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
 
                               {/* Mobile-friendly table wrapper */}
                               <div className="overflow-x-auto -mx-2 sm:mx-0">
-                                <Table className="min-w-[600px]">
+                                <Table className="min-w-[700px]">
                                   <TableHeader>
                                     <TableRow>
                                       <TableHead className="w-20">Parcela</TableHead>
                                       <TableHead>Valor</TableHead>
                                       <TableHead>Pago</TableHead>
                                       <TableHead>Restante</TableHead>
+                                      <TableHead>Rest. + Juros</TableHead>
                                       <TableHead>Vencimento</TableHead>
                                       <TableHead>Status</TableHead>
                                       <TableHead className="text-right">Ação</TableHead>
