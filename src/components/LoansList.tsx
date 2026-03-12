@@ -432,10 +432,12 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
         const instPaid = Number(inst.amount_paid || 0);
         const effectivePrincipal = Math.max(instAmt - pdfCredit, 0);
         pdfCredit = Math.max(pdfCredit - instAmt, 0);
-        const overpayment = Math.max(instPaid - effectivePrincipal, 0);
+        const jurosOnBalance = balanceBefore * interestRateDecimal;
+        const totalDue = effectivePrincipal + jurosOnBalance;
+        const overpayment = Math.max(instPaid - totalDue, 0);
         pdfCredit += overpayment;
-        const principalDeducted = Math.min(instPaid > 0 ? Math.max(instPaid, effectivePrincipal) : effectivePrincipal, pdfRunningBalance);
-        pdfRunningBalance = Math.max(pdfRunningBalance - principalDeducted, 0);
+        const principalPaid = effectivePrincipal + overpayment;
+        pdfRunningBalance = Math.max(pdfRunningBalance - principalPaid, 0);
         const dueDate = new Date(inst.due_date + "T00:00:00");
         const isOverdue = !inst.paid && dueDate < todayPdf;
         const daysLate = isOverdue ? differenceInCalendarDays(todayPdf, dueDate) : 0;
@@ -1061,12 +1063,15 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                       // Apply credit from previous overpayments to reduce this installment's effective principal
                                       const effectivePrincipal = Math.max(instAmount - credit, 0);
                                       credit = Math.max(credit - instAmount, 0);
-                                      // If paid more than the effective principal, the excess becomes new credit
-                                      const overpayment = Math.max(instPaid - effectivePrincipal, 0);
+                                      // Interest on balance BEFORE this payment
+                                      const jurosOnBalance = balanceBefore * (rate / 100);
+                                      // Total due = effective principal + interest. Credit only if paid MORE than that
+                                      const totalDue = effectivePrincipal + jurosOnBalance;
+                                      const overpayment = Math.max(instPaid - totalDue, 0);
                                       credit += overpayment;
-                                      // Deduct actual principal paid from balance
-                                      const principalDeducted = Math.min(instPaid > 0 ? Math.max(instPaid, effectivePrincipal) : effectivePrincipal, runningBalance);
-                                      runningBalance = Math.max(runningBalance - principalDeducted, 0);
+                                      // Deduct principal from balance (effective principal or more if overpaid beyond interest)
+                                      const principalPaid = effectivePrincipal + overpayment;
+                                      runningBalance = Math.max(runningBalance - principalPaid, 0);
                                       return { balanceBefore, balanceAfter: runningBalance, instAmount, instPaid, effectivePrincipal };
                                     });
 
