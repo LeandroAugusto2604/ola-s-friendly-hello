@@ -131,6 +131,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
     amountPaid: number;
     interestRate: number;
   } | null>(null);
+  const [addingLoanToClient, setAddingLoanToClient] = useState<{ id: string; name: string } | null>(null);
 
   const { data: clients, isLoading, refetch } = useQuery({
     queryKey: ["clients-with-loans", refreshKey],
