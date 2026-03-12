@@ -440,13 +440,15 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
         const isOverdue = !inst.paid && dueDate < todayPdf;
         const daysLate = isOverdue ? differenceInCalendarDays(todayPdf, dueDate) : 0;
         const lateFee = daysLate * Number(loan.daily_late_fee || 0);
-        const displayAmt = instAmt + lateFee;
+        const displayAmt = effectivePrincipal + lateFee;
         const valorText = lateFee > 0
           ? `${formatCurrency(displayAmt)} (+${daysLate}d)`
-          : formatCurrency(instAmt);
+          : effectivePrincipal < instAmt
+            ? `${formatCurrency(effectivePrincipal)} (cred.)`
+            : formatCurrency(instAmt);
         const amtPaid = Number(inst.amount_paid || 0);
         const juros = balanceBefore * interestRateDecimal;
-        const totalComJuros = instAmt + juros;
+        const totalComJuros = effectivePrincipal + juros;
         const statusLabel = inst.status === "liquidado" ? "Liquidado" : inst.status === "parcial" ? "Parcial" : isOverdue ? "Vencida" : "Pendente";
         return [
           `${inst.installment_number}/${totalCount}`,
