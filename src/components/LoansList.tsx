@@ -428,7 +428,10 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
       const tableData = loan.installments.map((inst) => {
         const balanceBefore = pdfRunningBalance;
         const instAmt = Number(inst.amount);
-        pdfRunningBalance = Math.max(pdfRunningBalance - instAmt, 0);
+        const instPaid = Number(inst.amount_paid || 0);
+        // Deduct the greater of planned or actual paid (overpayments reduce balance further)
+        const pdfDeduction = Math.max(instAmt, instPaid);
+        pdfRunningBalance = Math.max(pdfRunningBalance - pdfDeduction, 0);
         const dueDate = new Date(inst.due_date + "T00:00:00");
         const isOverdue = !inst.paid && dueDate < todayPdf;
         const daysLate = isOverdue ? differenceInCalendarDays(todayPdf, dueDate) : 0;
@@ -1047,8 +1050,9 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                       const balanceBefore = runningBalance;
                                       const instAmount = Number(inst.amount);
                                       const instPaid = Number(inst.amount_paid || 0);
-                                      // Deduct the installment amount from balance (planned amortization)
-                                      runningBalance = Math.max(runningBalance - instAmount, 0);
+                                      // Deduct the greater of planned or actual paid (overpayments reduce balance further)
+                                      const deduction = Math.max(instAmount, instPaid);
+                                      runningBalance = Math.max(runningBalance - deduction, 0);
                                       return { balanceBefore, balanceAfter: runningBalance, instAmount, instPaid };
                                     });
 
