@@ -59,6 +59,7 @@ import { EditClientDialog } from "@/components/EditClientDialog";
 import { EditLoanDialog } from "@/components/EditLoanDialog";
 import { InterestPaymentDialog } from "@/components/InterestPaymentDialog";
 import { PartialPaymentDialog } from "@/components/PartialPaymentDialog";
+import { AdvancePaymentDialog } from "@/components/AdvancePaymentDialog";
 
 interface Installment {
   id: string;
@@ -132,6 +133,13 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
     interestRate: number;
   } | null>(null);
   const [addingLoanToClient, setAddingLoanToClient] = useState<{ id: string; name: string } | null>(null);
+  const [advancePayment, setAdvancePayment] = useState<{
+    loanId: string;
+    originalAmount: number;
+    totalPaid: number;
+    interestRate: number;
+    installments: any[];
+  } | null>(null);
 
   const { data: clients, isLoading, refetch } = useQuery({
     queryKey: ["clients-with-loans", refreshKey],
@@ -898,7 +906,72 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                 </div>
                               </div>
 
-                              {/* Interest Section - Separate from installments */}
+                              {/* Financial Summary Panel */}
+                              <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-5 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                                    📊 Resumo Financeiro
+                                  </h4>
+                                  {Math.max(Number(loan.original_amount) - totalPaid, 0) > 0 && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="gap-1"
+                                      onClick={() => setAdvancePayment({
+                                        loanId: loan.id,
+                                        originalAmount: Number(loan.original_amount),
+                                        totalPaid,
+                                        interestRate: Number(loan.interest_rate || 0),
+                                        installments: loan.installments.map(i => ({
+                                          id: i.id,
+                                          installment_number: i.installment_number,
+                                          amount: Number(i.amount),
+                                          amount_paid: Number(i.amount_paid || 0),
+                                          status: i.status,
+                                          paid: i.paid,
+                                        })),
+                                      })}
+                                    >
+                                      💰 Adiantar Valor
+                                    </Button>
+                                  )}
+                                </div>
+                                {(() => {
+                                  const saldoDevedor = Math.max(Number(loan.original_amount) - totalPaid, 0);
+                                  const rate = Number(loan.interest_rate || 0);
+                                  const jurosSobreSaldo = saldoDevedor * (rate / 100);
+                                  const parcelaMensal = Number(loan.original_amount) / loan.installments_count;
+                                  const parcelaMaisJuros = parcelaMensal + jurosSobreSaldo;
+                                  return (
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                                      <div className="rounded-lg bg-background p-3 shadow-sm">
+                                        <p className="text-muted-foreground text-xs">Total Emprestado</p>
+                                        <p className="font-bold text-foreground text-lg">{formatCurrency(Number(loan.original_amount))}</p>
+                                      </div>
+                                      <div className="rounded-lg bg-background p-3 shadow-sm">
+                                        <p className="text-muted-foreground text-xs">Total Pago</p>
+                                        <p className="font-bold text-emerald-600 text-lg">{formatCurrency(totalPaid)}</p>
+                                      </div>
+                                      <div className="rounded-lg bg-background p-3 shadow-sm">
+                                        <p className="text-muted-foreground text-xs">Saldo Devedor</p>
+                                        <p className="font-bold text-destructive text-lg">{formatCurrency(saldoDevedor)}</p>
+                                      </div>
+                                      <div className="rounded-lg bg-background p-3 shadow-sm">
+                                        <p className="text-muted-foreground text-xs">
+                                          {rate > 0 ? `Parcela + Juros (${rate}%)` : "Valor da Parcela"}
+                                        </p>
+                                        <p className="font-bold text-foreground text-lg">{formatCurrency(rate > 0 ? parcelaMaisJuros : parcelaMensal)}</p>
+                                        {rate > 0 && (
+                                          <p className="text-xs text-amber-600 mt-1">
+                                            Parcela {formatCurrency(parcelaMensal)} + Juros {formatCurrency(jurosSobreSaldo)}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+
                               {totalInterest > 0 && (
                                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
                                   <div className="flex items-center justify-between">
@@ -1086,13 +1159,14 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
 
                               {/* Mobile-friendly table wrapper */}
                               <div className="overflow-x-auto -mx-2 sm:mx-0">
-                                <Table className="min-w-[600px]">
+                                <Table className="min-w-[700px]">
                                   <TableHeader>
                                     <TableRow>
                                       <TableHead className="w-20">Parcela</TableHead>
                                       <TableHead>Valor</TableHead>
                                       <TableHead>Pago</TableHead>
                                       <TableHead>Restante</TableHead>
+                                      <TableHead>Rest. + Juros</TableHead>
                                       <TableHead>Vencimento</TableHead>
                                       <TableHead>Status</TableHead>
                                       <TableHead className="text-right">Ação</TableHead>
@@ -1144,6 +1218,26 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                           <span className={instRemaining > 0 ? "font-semibold text-destructive" : "text-muted-foreground"}>
                                             {formatCurrency(instRemaining)}
                                           </span>
+                                        </TableCell>
+                                        <TableCell>
+                                          {(() => {
+                                            // Calculate remaining balance up to this installment
+                                            const paidBefore = loan.installments
+                                              .filter(i => i.installment_number <= installment.installment_number)
+                                              .reduce((s, i) => s + Number(i.amount_paid || 0), 0);
+                                            const saldoAtual = Math.max(Number(loan.original_amount) - paidBefore, 0);
+                                            const rate = Number(loan.interest_rate || 0);
+                                            const juros = saldoAtual * (rate / 100);
+                                            const restComJuros = instRemaining + juros;
+                                            return instRemaining > 0 ? (
+                                              <div>
+                                                <span className="font-bold text-foreground">{formatCurrency(restComJuros)}</span>
+                                                {rate > 0 && <span className="block text-xs text-amber-600">+{formatCurrency(juros)} juros</span>}
+                                              </div>
+                                            ) : (
+                                              <span className="text-muted-foreground">-</span>
+                                            );
+                                          })()}
                                         </TableCell>
                                         <TableCell>
                                           {format(
@@ -1332,6 +1426,18 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
             />
           </DialogContent>
         </Dialog>
+      )}
+      {advancePayment && (
+        <AdvancePaymentDialog
+          loanId={advancePayment.loanId}
+          originalAmount={advancePayment.originalAmount}
+          totalPaid={advancePayment.totalPaid}
+          interestRate={advancePayment.interestRate}
+          installments={advancePayment.installments}
+          open={!!advancePayment}
+          onOpenChange={(open) => { if (!open) setAdvancePayment(null); }}
+          onSuccess={() => { refetch(); onDataChange?.(); }}
+        />
       )}
     </Card>
   );
