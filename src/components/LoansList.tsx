@@ -1047,8 +1047,9 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                       const balanceBefore = runningBalance;
                                       const instAmount = Number(inst.amount);
                                       const instPaid = Number(inst.amount_paid || 0);
-                                      // Deduct the installment amount from balance (planned amortization)
-                                      runningBalance = Math.max(runningBalance - instAmount, 0);
+                                      // Deduct the greater of planned or actual paid (overpayments reduce balance further)
+                                      const deduction = Math.max(instAmount, instPaid);
+                                      runningBalance = Math.max(runningBalance - deduction, 0);
                                       return { balanceBefore, balanceAfter: runningBalance, instAmount, instPaid };
                                     });
 
