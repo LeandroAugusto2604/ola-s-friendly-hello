@@ -739,7 +739,15 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                             </p>
                           )}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Button
+                            size="sm"
+                            className="gap-1 gradient-primary border-0 hover:opacity-90"
+                            onClick={() => setAddingLoanToClient({ id: client.id, name: client.full_name })}
+                          >
+                            <Plus className="h-4 w-4" />
+                            Novo Empréstimo
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
