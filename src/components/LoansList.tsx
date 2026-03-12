@@ -1290,6 +1290,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                                   amount: instAmount,
                                                   amountPaid: instPaid,
                                                   interestRate: Number(loan.interest_rate || 0),
+                                                  loanBalanceBefore: balanceBefore,
                                                 })
                                               }
                                               className="gradient-primary border-0 shadow-sm hover:opacity-90"
