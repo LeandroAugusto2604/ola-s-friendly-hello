@@ -843,7 +843,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                   <h4 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1 sm:gap-2">
                                     📊 Resumo Financeiro
                                   </h4>
-                                  {Math.max(Number(loan.original_amount) - totalPaid, 0) > 0 && (
+                                  {Math.max(Number(loan.amount) - totalPaid, 0) > 0 && (
                                     <Button
                                       size="sm"
                                       variant="outline"
