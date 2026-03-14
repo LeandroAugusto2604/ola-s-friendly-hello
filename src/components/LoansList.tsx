@@ -495,7 +495,59 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
         },
       });
 
-      yPos = (doc as any).lastAutoTable.finalY + 10;
+      yPos = (doc as any).lastAutoTable.finalY + 8;
+
+      // Extrato de Pagamentos
+      const paidInstallments = loan.installments.filter((i) => Number(i.amount_paid || 0) > 0);
+      if (paidInstallments.length > 0) {
+        if (yPos > 240) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text("📋 Extrato de Pagamentos", 14, yPos);
+        yPos += 6;
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+
+        for (const inst of paidInstallments) {
+          if (yPos > 275) {
+            doc.addPage();
+            yPos = 20;
+          }
+          const dueDate = format(new Date(inst.due_date + "T00:00:00"), "dd/MM/yyyy");
+          const paidAtText = inst.paid_at ? `Pago em: ${format(new Date(inst.paid_at), "dd/MM/yyyy")}` : "";
+          const statusLabel = inst.status === "liquidado" ? "Liquidado" : "Parcial";
+          const amtPaid = formatCurrency(Number(inst.amount_paid || 0));
+
+          doc.text(`Parcela ${inst.installment_number}/${totalCount}  Venc: ${dueDate}  • ${paidAtText}`, 16, yPos);
+          doc.text(`${amtPaid}  [${statusLabel}]`, pageWidth - 14, yPos, { align: "right" });
+          yPos += 5;
+        }
+
+        yPos += 3;
+
+        // Summary row
+        if (yPos > 265) {
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, yPos, pageWidth - 14, yPos);
+        yPos += 5;
+
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
+        doc.text(`Total Empréstimo: ${formatCurrency(Number(loan.original_amount))}`, 14, yPos);
+        doc.text(`Total Pago: ${formatCurrency(totalAmountPaid)}`, pageWidth / 2 - 20, yPos);
+        doc.setTextColor(220, 38, 38);
+        doc.text(`Saldo Devedor: ${formatCurrency(saldoDevedor)}`, pageWidth - 14, yPos, { align: "right" });
+        doc.setTextColor(0, 0, 0);
+        yPos += 10;
+      }
     }
 
     const safeName = client.full_name.replace(/\s+/g, "-").toLowerCase();
