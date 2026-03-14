@@ -399,7 +399,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
 
       const totalCount = loan.installments.length;
       const totalAmountPaid = loan.installments.reduce((sum, i) => sum + Number(i.amount_paid || 0), 0);
-      const saldoDevedor = Math.max(Number(loan.original_amount) - totalAmountPaid, 0);
+      const saldoDevedor = Math.max(Number(loan.amount) - totalAmountPaid, 0);
 
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
@@ -843,7 +843,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                   <h4 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1 sm:gap-2">
                                     📊 Resumo Financeiro
                                   </h4>
-                                  {Math.max(Number(loan.original_amount) - totalPaid, 0) > 0 && (
+                                  {Math.max(Number(loan.amount) - totalPaid, 0) > 0 && (
                                     <Button
                                       size="sm"
                                       variant="outline"
@@ -868,7 +868,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                   )}
                                 </div>
                                 {(() => {
-                                  const saldoDevedor = Math.max(Number(loan.original_amount) - totalPaid, 0);
+                                  const saldoDevedor = Math.max(Number(loan.amount) - totalPaid, 0);
                                   const rate = Number(loan.interest_rate || 0);
                                   const jurosSobreSaldo = saldoDevedor * (rate / 100);
                                   const parcelaMensal = Number(loan.original_amount) / loan.installments_count;
@@ -1262,7 +1262,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                       <p className="font-bold text-destructive">
                                         {formatCurrency(
                                           Math.max(
-                                            Number(loan.original_amount) -
+                                            Number(loan.amount) -
                                             loan.installments.reduce((s, i) => s + Number(i.amount_paid || 0), 0),
                                             0
                                           )
