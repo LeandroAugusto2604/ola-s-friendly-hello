@@ -507,7 +507,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
 
         doc.setFontSize(10);
         doc.setFont("helvetica", "bold");
-        doc.text("📋 Extrato de Pagamentos", 14, yPos);
+        doc.text("Extrato de Pagamentos", 14, yPos);
         yPos += 6;
 
         doc.setFont("helvetica", "normal");
