@@ -149,11 +149,45 @@ export function ClientForm({ onSuccess }: ClientFormProps) {
         </div>
 
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+          <FormField control={form.control} name="fullName" render={({ field }) => (
+            <FormItem className="sm:col-span-2">
+              <FormLabel>Nome Completo</FormLabel>
+              <FormControl><Input placeholder="João da Silva" {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+
+          <FormField control={form.control} name="address" render={({ field }) => (
+            <FormItem className="sm:col-span-2">
+              <FormLabel>Endereço</FormLabel>
+              <FormControl><Input placeholder="Rua, número, bairro, cidade" {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+
+          <FormField control={form.control} name="phone" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Celular</FormLabel>
+              <FormControl>
+                <Input placeholder="(00) 00000-0000" {...field} onChange={(e) => field.onChange(formatPhone(e.target.value))} maxLength={15} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+
+          <FormField control={form.control} name="rg" render={({ field }) => (
+            <FormItem>
+              <FormLabel>RG</FormLabel>
+              <FormControl><Input placeholder="00.000.000-0" {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+
           <FormField
             control={form.control}
             name="cpf"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="sm:col-span-2">
                 <FormLabel>CPF</FormLabel>
                 <div className="flex gap-2">
                   <FormControl>
@@ -172,40 +206,6 @@ export function ClientForm({ onSuccess }: ClientFormProps) {
               </FormItem>
             )}
           />
-
-          <FormField control={form.control} name="fullName" render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nome Completo</FormLabel>
-              <FormControl><Input placeholder="João da Silva" {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-
-          <FormField control={form.control} name="address" render={({ field }) => (
-            <FormItem>
-              <FormLabel>Endereço</FormLabel>
-              <FormControl><Input placeholder="Rua, número, bairro, cidade" {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-
-          <FormField control={form.control} name="rg" render={({ field }) => (
-            <FormItem>
-              <FormLabel>RG</FormLabel>
-              <FormControl><Input placeholder="00.000.000-0" {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-
-          <FormField control={form.control} name="phone" render={({ field }) => (
-            <FormItem className="sm:col-span-2">
-              <FormLabel>Celular</FormLabel>
-              <FormControl>
-                <Input placeholder="(00) 00000-0000" {...field} onChange={(e) => field.onChange(formatPhone(e.target.value))} maxLength={15} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
         </div>
 
         <Button type="submit" className="w-full h-12 gradient-primary border-0 shadow-soft hover:opacity-90 transition-smooth text-base gap-2" disabled={isLoading}>
