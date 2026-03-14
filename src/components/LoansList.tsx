@@ -868,7 +868,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                   )}
                                 </div>
                                 {(() => {
-                                  const saldoDevedor = Math.max(Number(loan.original_amount) - totalPaid, 0);
+                                  const saldoDevedor = Math.max(Number(loan.amount) - totalPaid, 0);
                                   const rate = Number(loan.interest_rate || 0);
                                   const jurosSobreSaldo = saldoDevedor * (rate / 100);
                                   const parcelaMensal = Number(loan.original_amount) / loan.installments_count;
