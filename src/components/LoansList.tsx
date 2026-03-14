@@ -1262,7 +1262,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                       <p className="font-bold text-destructive">
                                         {formatCurrency(
                                           Math.max(
-                                            Number(loan.original_amount) -
+                                            Number(loan.amount) -
                                             loan.installments.reduce((s, i) => s + Number(i.amount_paid || 0), 0),
                                             0
                                           )
