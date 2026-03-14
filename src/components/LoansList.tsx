@@ -399,7 +399,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
 
       const totalCount = loan.installments.length;
       const totalAmountPaid = loan.installments.reduce((sum, i) => sum + Number(i.amount_paid || 0), 0);
-      const saldoDevedor = Math.max(Number(loan.original_amount) - totalAmountPaid, 0);
+      const saldoDevedor = Math.max(Number(loan.amount) - totalAmountPaid, 0);
 
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
