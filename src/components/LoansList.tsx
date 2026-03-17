@@ -447,12 +447,12 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
         const lateFee = daysLate * Number(loan.daily_late_fee || 0);
         const displayAmt = effectivePrincipal + lateFee;
         const valorText = instAmt === 0 && inst.status === "liquidado"
-450:           ? "So juros"
-451:           : lateFee > 0
-452:           ? `${formatCurrency(displayAmt)} (+${daysLate}d)`
-453:           : effectivePrincipal < instAmt
-454:             ? `${formatCurrency(effectivePrincipal)} (cred.)`
-455:             : formatCurrency(instAmt);
+          ? "So juros"
+          : lateFee > 0
+          ? `${formatCurrency(displayAmt)} (+${daysLate}d)`
+          : effectivePrincipal < instAmt
+            ? `${formatCurrency(effectivePrincipal)} (cred.)`
+            : formatCurrency(instAmt);
         const amtPaid = Number(inst.amount_paid || 0);
         const juros = balanceBefore * interestRateDecimal;
         const totalComJuros = effectivePrincipal + juros;
