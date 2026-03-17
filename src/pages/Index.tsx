@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { LoanForm } from "@/components/LoanForm";
+import { ClientForm } from "@/components/ClientForm";
 import { LoansList } from "@/components/LoansList";
 import { DashboardStats } from "@/components/DashboardStats";
 import { OverdueAlert } from "@/components/OverdueAlert";
@@ -142,14 +142,14 @@ function DashboardContent() {
                   </Button>
                 </DialogTrigger>
               <DialogContent 
-                className="max-w-2xl max-h-[90vh] overflow-y-auto shadow-hover"
+                className="max-w-lg max-h-[90vh] overflow-y-auto shadow-hover"
                 onPointerDownOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
               >
                 <DialogHeader>
-                  <DialogTitle className="text-xl">Cadastrar Cliente e Empréstimo</DialogTitle>
+                  <DialogTitle className="text-xl">Cadastrar Novo Cliente</DialogTitle>
                 </DialogHeader>
-                <LoanForm onSuccess={handleLoanSuccess} />
+                <ClientForm onSuccess={handleLoanSuccess} />
               </DialogContent>
             </Dialog>
             </div>
