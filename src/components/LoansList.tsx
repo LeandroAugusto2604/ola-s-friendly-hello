@@ -1243,6 +1243,9 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                                   amountPaid: instPaid,
                                                   interestRate: Number(loan.interest_rate || 0),
                                                   loanBalanceBefore: balanceBefore,
+                                                  loanId: loan.id,
+                                                  lastInstallmentNumber: loan.installments[loan.installments.length - 1].installment_number,
+                                                  lastDueDate: loan.installments[loan.installments.length - 1].due_date,
                                                 })
                                               }
                                               className="gradient-primary border-0 shadow-sm hover:opacity-90"
