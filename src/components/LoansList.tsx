@@ -1153,7 +1153,14 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                           {loan.installments_count}
                                         </TableCell>
                                         <TableCell>
-                                          {isOverdue && lateFee > 0 ? (
+                                          {instAmount === 0 && instStatus === "liquidado" ? (
+                                            <div>
+                                              <span className="font-semibold text-amber-600">Só juros</span>
+                                              <span className="block text-xs text-muted-foreground">
+                                                Principal movido p/ final
+                                              </span>
+                                            </div>
+                                          ) : isOverdue && lateFee > 0 ? (
                                             <div>
                                               <span className="line-through text-muted-foreground text-xs">
                                                 {formatCurrency(effectivePrincipal)}
