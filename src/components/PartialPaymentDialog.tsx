@@ -10,7 +10,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowRight } from "lucide-react";
+import { addDays, format } from "date-fns";
 
 interface PartialPaymentDialogProps {
   installmentId: string;
@@ -19,6 +20,9 @@ interface PartialPaymentDialogProps {
   amountPaid: number;
   interestRate: number;
   loanBalanceBefore: number;
+  loanId: string;
+  lastInstallmentNumber: number;
+  lastDueDate: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
@@ -31,12 +35,16 @@ export function PartialPaymentDialog({
   amountPaid,
   interestRate,
   loanBalanceBefore,
+  loanId,
+  lastInstallmentNumber,
+  lastDueDate,
   open,
   onOpenChange,
   onSuccess,
 }: PartialPaymentDialogProps) {
   const [paymentValue, setPaymentValue] = useState("");
   const [saving, setSaving] = useState(false);
+  const [savingInterestOnly, setSavingInterestOnly] = useState(false);
 
   const remainingBalance = installmentAmount - amountPaid;
   const interestOnLoanBalance = loanBalanceBefore * (interestRate / 100);
@@ -88,6 +96,69 @@ export function PartialPaymentDialog({
     }
   };
 
+  const handlePayInterestOnly = async () => {
+    if (interestRate <= 0 || interestOnLoanBalance <= 0) return;
+
+    setSavingInterestOnly(true);
+    try {
+      // 1. Mark current installment as paid (interest-only payment)
+      const { error: updateError } = await supabase
+        .from("installments")
+        .update({
+          amount_paid: parseFloat(interestOnLoanBalance.toFixed(2)),
+          paid: true,
+          paid_at: new Date().toISOString(),
+          status: "liquidado",
+        } as any)
+        .eq("id", installmentId);
+
+      if (updateError) throw updateError;
+
+      // 2. Create a new installment at the end with the principal amount
+      const newDueDate = addDays(new Date(lastDueDate + "T00:00:00"), 30);
+      const newInstallmentNumber = lastInstallmentNumber + 1;
+
+      const { error: insertError } = await supabase
+        .from("installments")
+        .insert({
+          loan_id: loanId,
+          installment_number: newInstallmentNumber,
+          amount: installmentAmount,
+          due_date: format(newDueDate, "yyyy-MM-dd"),
+          paid: false,
+          amount_paid: 0,
+          status: "pendente",
+        } as any);
+
+      if (insertError) throw insertError;
+
+      // 3. Update loan installments_count
+      const { error: loanError } = await supabase
+        .from("loans")
+        .update({ installments_count: newInstallmentNumber } as any)
+        .eq("id", loanId);
+
+      if (loanError) throw loanError;
+
+      toast({
+        title: "Juros pagos!",
+        description: `${formatCurrency(interestOnLoanBalance)} de juros pago. Parcela ${installmentNumber} (${formatCurrency(installmentAmount)}) movida para o final como parcela ${newInstallmentNumber}.`,
+      });
+
+      setPaymentValue("");
+      onOpenChange(false);
+      onSuccess();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao registrar",
+        description: error?.message || "Erro desconhecido",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingInterestOnly(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -126,6 +197,31 @@ export function PartialPaymentDialog({
               </>
             )}
           </div>
+
+          {/* Pay interest only button */}
+          {interestRate > 0 && interestOnLoanBalance > 0 && amountPaid === 0 && (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+              <div className="text-sm">
+                <p className="font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                  <ArrowRight className="h-4 w-4" />
+                  Pagar apenas os juros
+                </p>
+                <p className="text-muted-foreground mt-1">
+                  Pague somente {formatCurrency(interestOnLoanBalance)} de juros. 
+                  A parcela de {formatCurrency(installmentAmount)} será movida para o final do plano como parcela {lastInstallmentNumber + 1}.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                className="w-full border-amber-500/50 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10"
+                onClick={handlePayInterestOnly}
+                disabled={savingInterestOnly}
+              >
+                {savingInterestOnly && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                Pagar só juros ({formatCurrency(interestOnLoanBalance)})
+              </Button>
+            </div>
+          )}
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Valor Pago/Adiantado (R$)</label>

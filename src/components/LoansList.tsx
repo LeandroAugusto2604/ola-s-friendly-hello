@@ -132,6 +132,9 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
     amountPaid: number;
     interestRate: number;
     loanBalanceBefore: number;
+    loanId: string;
+    lastInstallmentNumber: number;
+    lastDueDate: string;
   } | null>(null);
   const [addingLoanToClient, setAddingLoanToClient] = useState<{ id: string; name: string } | null>(null);
   const [advancePayment, setAdvancePayment] = useState<{
@@ -1240,6 +1243,9 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                                   amountPaid: instPaid,
                                                   interestRate: Number(loan.interest_rate || 0),
                                                   loanBalanceBefore: balanceBefore,
+                                                  loanId: loan.id,
+                                                  lastInstallmentNumber: loan.installments[loan.installments.length - 1].installment_number,
+                                                  lastDueDate: loan.installments[loan.installments.length - 1].due_date,
                                                 })
                                               }
                                               className="gradient-primary border-0 shadow-sm hover:opacity-90"
@@ -1369,6 +1375,9 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
           amountPaid={partialPayment.amountPaid}
           interestRate={partialPayment.interestRate}
           loanBalanceBefore={partialPayment.loanBalanceBefore}
+          loanId={partialPayment.loanId}
+          lastInstallmentNumber={partialPayment.lastInstallmentNumber}
+          lastDueDate={partialPayment.lastDueDate}
           open={!!partialPayment}
           onOpenChange={(open) => { if (!open) setPartialPayment(null); }}
           onSuccess={() => { refetch(); onDataChange?.(); }}
