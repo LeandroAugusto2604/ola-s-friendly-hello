@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { ClientForm } from "@/components/ClientForm";
+import { LoanForm } from "@/components/LoanForm";
 import { LoansList } from "@/components/LoansList";
 import { DashboardStats } from "@/components/DashboardStats";
 import { OverdueAlert } from "@/components/OverdueAlert";
