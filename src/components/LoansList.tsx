@@ -446,7 +446,9 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
         const daysLate = isOverdue ? differenceInCalendarDays(todayPdf, dueDate) : 0;
         const lateFee = daysLate * Number(loan.daily_late_fee || 0);
         const displayAmt = effectivePrincipal + lateFee;
-        const valorText = lateFee > 0
+        const valorText = instAmt === 0 && inst.status === "liquidado"
+          ? "So juros"
+          : lateFee > 0
           ? `${formatCurrency(displayAmt)} (+${daysLate}d)`
           : effectivePrincipal < instAmt
             ? `${formatCurrency(effectivePrincipal)} (cred.)`
@@ -1153,7 +1155,14 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                           {loan.installments_count}
                                         </TableCell>
                                         <TableCell>
-                                          {isOverdue && lateFee > 0 ? (
+                                          {instAmount === 0 && instStatus === "liquidado" ? (
+                                            <div>
+                                              <span className="font-semibold text-amber-600">Só juros</span>
+                                              <span className="block text-xs text-muted-foreground">
+                                                Principal movido p/ final
+                                              </span>
+                                            </div>
+                                          ) : isOverdue && lateFee > 0 ? (
                                             <div>
                                               <span className="line-through text-muted-foreground text-xs">
                                                 {formatCurrency(effectivePrincipal)}
