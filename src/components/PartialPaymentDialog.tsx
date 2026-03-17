@@ -101,10 +101,12 @@ export function PartialPaymentDialog({
 
     setSavingInterestOnly(true);
     try {
-      // 1. Mark current installment as paid (interest-only payment)
+      // 1. Mark current installment as paid (interest-only) and zero out the amount
+      // since the principal is being moved to a new installment at the end
       const { error: updateError } = await supabase
         .from("installments")
         .update({
+          amount: 0,
           amount_paid: parseFloat(interestOnLoanBalance.toFixed(2)),
           paid: true,
           paid_at: new Date().toISOString(),
