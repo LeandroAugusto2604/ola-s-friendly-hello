@@ -116,9 +116,36 @@ export function PartialPaymentDialog({
 
       if (updateError) throw updateError;
 
-      // 2. Create a new installment at the end with the principal amount
-      const newDueDate = addDays(new Date(lastDueDate + "T00:00:00"), 30);
-      const newInstallmentNumber = lastInstallmentNumber + 1;
+      // 2. Create a new installment for the NEXT MONTH after the current one
+      const currentDueDate = new Date(currentInstallmentDueDate + "T00:00:00");
+      const newDueDate = addDays(currentDueDate, 30);
+      const newInstallmentNumber = installmentNumber + 1;
+
+      // 2a. Shift all installments after current one up by 1
+      const { error: shiftError } = await supabase.rpc("increment_installment_numbers" as any, {
+        _loan_id: loanId,
+        _after_number: installmentNumber,
+      });
+
+      // If RPC doesn't exist, do it manually
+      if (shiftError) {
+        // Fetch all installments after current, shift them
+        const { data: laterInstallments } = await supabase
+          .from("installments")
+          .select("id, installment_number")
+          .eq("loan_id", loanId)
+          .gt("installment_number", installmentNumber)
+          .order("installment_number", { ascending: false });
+
+        if (laterInstallments) {
+          for (const inst of laterInstallments) {
+            await supabase
+              .from("installments")
+              .update({ installment_number: inst.installment_number + 1 } as any)
+              .eq("id", inst.id);
+          }
+        }
+      }
 
       const { error: insertError } = await supabase
         .from("installments")
