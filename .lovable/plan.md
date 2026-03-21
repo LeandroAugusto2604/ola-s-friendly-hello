@@ -1,60 +1,33 @@
 
 
-# Adicionar Campo de Multa Diaria por Atraso
+# Plano: Gerar Manual PDF do LoanManager
 
-## Resumo
-Adicionar um campo no formulario de cadastro de emprestimo para definir um valor cobrado por dia de atraso. Esse valor sera salvo no banco de dados e usado para calcular automaticamente o acrescimo nas parcelas vencidas na tela de listagem.
+## Objetivo
+Criar um PDF profissional em português com todas as funcionalidades da plataforma, servindo como manual do usuario para novos aderentes.
 
-## Mudancas
+## Conteudo do Manual
 
-### 1. Banco de Dados -- Nova coluna na tabela `loans`
-- Adicionar coluna `daily_late_fee` (numeric, default 0) na tabela `loans`
-- Essa coluna armazena o valor em reais cobrado por cada dia de atraso
+O PDF tera as seguintes secoes:
 
-### 2. Formulario de Cadastro (`src/components/LoanForm.tsx`)
-- Adicionar campo "Multa Diaria por Atraso (R$)" no schema de validacao (valor >= 0)
-- Adicionar o input no formulario, ao lado dos campos de juros e parcelas
-- Incluir o valor de `daily_late_fee` no insert do emprestimo
+1. **Capa** - Logo/titulo "LoanManager - Manual do Usuario"
+2. **Acesso a Plataforma** - Login, cadastro, recuperacao de senha
+3. **Dashboard** - Estatisticas (clientes, emprestimos, parcelas pagas, atrasos), alertas de atraso
+4. **Cadastro de Cliente e Emprestimo** - Fluxo unificado em 2 etapas: dados do cliente (nome, endereco, CEP, celular, RG, CPF) + configuracao do emprestimo (valor, juros, multa diaria, parcelas manuais com simulacao)
+5. **Gerenciamento de Emprestimos** - Lista de clientes, busca, visualizacao de parcelas, status
+6. **Pagamentos** - Pagamento total, pagamento parcial, pagamento somente de juros (com rollover da parcela para o mes seguinte), pagamento antecipado
+7. **Edicao de Parcelas** - Edicao individual (com redistribuicao automatica do saldo), edicao em massa (alterar, excluir, adicionar parcelas)
+8. **Edicao de Clientes** - Alterar dados cadastrais
+9. **Exportacao PDF** - Relatorio completo com extrato de pagamentos
+10. **Verificacao de Identidade** - Link de verificacao para clientes
+11. **Atualizacoes em Tempo Real** - Como o sistema se atualiza automaticamente
 
-### 3. Listagem de Emprestimos (`src/components/LoansList.tsx`)
-- Atualizar a interface `Loan` para incluir `daily_late_fee`
-- Para parcelas vencidas (nao pagas e com data anterior a hoje), calcular os dias de atraso e exibir o valor acrescido:
-  - `valor_com_multa = valor_parcela + (dias_atraso * daily_late_fee)`
-- Exibir o valor original e o acrescimo de forma clara na tabela de parcelas
-- Atualizar o resumo de atraso para mostrar o valor total com multa
+## Abordagem Tecnica
 
-### 4. Exportacao PDF (`src/components/LoansList.tsx`)
-- Incluir o valor da multa diaria nas informacoes do emprestimo no PDF
-- Mostrar o valor atualizado das parcelas vencidas no PDF
+- Usar **reportlab** (Python) para gerar o PDF com layout profissional
+- Cores baseadas no tema da plataforma (azul gradiente do header)
+- Cada secao com titulo, descricao e passo-a-passo numerado
+- Arquivo gerado em `/mnt/documents/manual-loanmanager.pdf`
 
-## Detalhes Tecnicos
+## Resultado
+Um PDF de ~10-15 paginas, pronto para download e distribuicao.
 
-### Coluna no banco
-```sql
-ALTER TABLE loans ADD COLUMN daily_late_fee numeric NOT NULL DEFAULT 0;
-```
-
-### Calculo do atraso
-O calculo sera feito no frontend ao exibir as parcelas:
-
-```text
-Para cada parcela nao paga:
-  Se due_date < hoje:
-    dias_atraso = diferenca em dias entre due_date e hoje
-    valor_exibido = amount + (dias_atraso * daily_late_fee)
-  Senao:
-    valor_exibido = amount (sem acrescimo)
-```
-
-O valor original da parcela no banco **nao sera alterado** -- o acrescimo e calculado dinamicamente na exibicao. Isso garante que, se o cliente pagar a parcela em atraso, o valor correto do dia do pagamento seja considerado.
-
-### Campo no formulario
-- Label: "Multa Diaria por Atraso (R$)"
-- Tipo: number, step 0.01, min 0
-- Default: "0"
-- Descricao: "Valor cobrado por dia de atraso em cada parcela"
-
-## Arquivos Modificados
-- `src/components/LoanForm.tsx` -- novo campo no formulario
-- `src/components/LoansList.tsx` -- calculo e exibicao da multa
-- Migracao SQL -- nova coluna `daily_late_fee`
