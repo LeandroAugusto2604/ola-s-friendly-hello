@@ -159,8 +159,13 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
     interestRate: number;
     installments: any[];
   } | null>(null);
+  const [bulkEditLoan, setBulkEditLoan] = useState<{
+    loanId: string;
+    originalAmount: number;
+    interestRate: number;
+    installments: { id: string; installment_number: number; amount: number; due_date: string; amount_paid: number; status: string; }[];
+  } | null>(null);
 
-  const { data: clients, isLoading, refetch } = useQuery({
     queryKey: ["clients-with-loans", refreshKey],
     queryFn: async () => {
       const { data: clientsData, error: clientsError } = await supabase
