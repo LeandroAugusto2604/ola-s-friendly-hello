@@ -166,14 +166,14 @@ export function PartialPaymentDialog({
       // 3. Update loan installments_count
       const { error: loanError } = await supabase
         .from("loans")
-        .update({ installments_count: newInstallmentNumber } as any)
+        .update({ installments_count: lastInstallmentNumber + 1 } as any)
         .eq("id", loanId);
 
       if (loanError) throw loanError;
 
       toast({
         title: "Juros pagos!",
-        description: `${formatCurrency(interestOnLoanBalance)} de juros pago. Parcela ${installmentNumber} (${formatCurrency(installmentAmount)}) movida para o final como parcela ${newInstallmentNumber}.`,
+        description: `${formatCurrency(interestOnLoanBalance)} de juros pago. Nova parcela de ${formatCurrency(installmentAmount)} criada para o próximo mês.`,
       });
 
       setPaymentValue("");
