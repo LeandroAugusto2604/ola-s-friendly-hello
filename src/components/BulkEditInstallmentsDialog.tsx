@@ -179,7 +179,7 @@ export function BulkEditInstallmentsDialog({
     }
 
     for (const r of activeRows) {
-      if (r.amount <= 0) {
+      if (r.status !== "liquidado" && r.amount <= 0) {
         toast({ title: "Erro", description: `Parcela ${r.installment_number} tem valor inválido`, variant: "destructive" });
         return;
       }
