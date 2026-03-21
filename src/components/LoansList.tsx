@@ -1511,6 +1511,17 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
           onSuccess={() => { refetch(); onDataChange?.(); }}
         />
       )}
+      {bulkEditLoan && (
+        <BulkEditInstallmentsDialog
+          loanId={bulkEditLoan.loanId}
+          originalAmount={bulkEditLoan.originalAmount}
+          interestRate={bulkEditLoan.interestRate}
+          installments={bulkEditLoan.installments}
+          open={!!bulkEditLoan}
+          onOpenChange={(open) => { if (!open) setBulkEditLoan(null); }}
+          onSuccess={() => { refetch(); onDataChange?.(); }}
+        />
+      )}
     </Card>
   );
 }
