@@ -1290,6 +1290,17 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                                   due_date: installment.due_date,
                                                   amount_paid: instPaid,
                                                   status: instStatus,
+                                                  loanId: loan.id,
+                                                  originalAmount: Number(loan.original_amount),
+                                                  interestRate: Number(loan.interest_rate || 0),
+                                                  allInstallments: loan.installments.map(i => ({
+                                                    id: i.id,
+                                                    installment_number: i.installment_number,
+                                                    amount: Number(i.amount),
+                                                    due_date: i.due_date,
+                                                    amount_paid: Number(i.amount_paid || 0),
+                                                    status: i.status || (i.paid ? "liquidado" : "pendente"),
+                                                  })),
                                                 })
                                               }
                                             >
