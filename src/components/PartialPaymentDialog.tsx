@@ -39,6 +39,7 @@ export function PartialPaymentDialog({
   loanId,
   lastInstallmentNumber,
   lastDueDate,
+  currentInstallmentDueDate,
   open,
   onOpenChange,
   onSuccess,
