@@ -1250,6 +1250,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                           )}
                                         </TableCell>
                                         <TableCell className="text-right">
+                                          <div className="flex items-center justify-end gap-1">
                                           {instStatus !== "liquidado" && (
                                             <Button
                                               size="sm"
@@ -1271,6 +1272,8 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                             >
                                               Pagar
                                             </Button>
+                                          )}
+                                          {instStatus !== "liquidado" && (
                                             <Button
                                               size="sm"
                                               variant="outline"
@@ -1288,6 +1291,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                               <Pencil className="h-3 w-3" />
                                             </Button>
                                           )}
+                                          </div>
                                         </TableCell>
                                       </TableRow>
                                     );
