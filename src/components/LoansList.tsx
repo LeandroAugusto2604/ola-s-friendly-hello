@@ -60,6 +60,7 @@ import { EditLoanDialog } from "@/components/EditLoanDialog";
 import { InterestPaymentDialog } from "@/components/InterestPaymentDialog";
 import { PartialPaymentDialog } from "@/components/PartialPaymentDialog";
 import { AdvancePaymentDialog } from "@/components/AdvancePaymentDialog";
+import { EditInstallmentDialog } from "@/components/EditInstallmentDialog";
 
 interface Installment {
   id: string;
@@ -135,6 +136,15 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
     loanId: string;
     lastInstallmentNumber: number;
     lastDueDate: string;
+    currentInstallmentDueDate: string;
+  } | null>(null);
+  const [editingInstallment, setEditingInstallment] = useState<{
+    id: string;
+    installment_number: number;
+    amount: number;
+    due_date: string;
+    amount_paid: number;
+    status: string;
   } | null>(null);
   const [addingLoanToClient, setAddingLoanToClient] = useState<{ id: string; name: string } | null>(null);
   const [advancePayment, setAdvancePayment] = useState<{
@@ -1241,6 +1251,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                           )}
                                         </TableCell>
                                         <TableCell className="text-right">
+                                          <div className="flex items-center justify-end gap-1">
                                           {instStatus !== "liquidado" && (
                                             <Button
                                               size="sm"
@@ -1255,6 +1266,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                                   loanId: loan.id,
                                                   lastInstallmentNumber: loan.installments[loan.installments.length - 1].installment_number,
                                                   lastDueDate: loan.installments[loan.installments.length - 1].due_date,
+                                                  currentInstallmentDueDate: installment.due_date,
                                                 })
                                               }
                                               className="gradient-primary border-0 shadow-sm hover:opacity-90"
@@ -1262,6 +1274,25 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                               Pagar
                                             </Button>
                                           )}
+                                          {instStatus !== "liquidado" && (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() =>
+                                                setEditingInstallment({
+                                                  id: installment.id,
+                                                  installment_number: installment.installment_number,
+                                                  amount: instAmount,
+                                                  due_date: installment.due_date,
+                                                  amount_paid: instPaid,
+                                                  status: instStatus,
+                                                })
+                                              }
+                                            >
+                                              <Pencil className="h-3 w-3" />
+                                            </Button>
+                                          )}
+                                          </div>
                                         </TableCell>
                                       </TableRow>
                                     );
@@ -1387,6 +1418,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
           loanId={partialPayment.loanId}
           lastInstallmentNumber={partialPayment.lastInstallmentNumber}
           lastDueDate={partialPayment.lastDueDate}
+          currentInstallmentDueDate={partialPayment.currentInstallmentDueDate}
           open={!!partialPayment}
           onOpenChange={(open) => { if (!open) setPartialPayment(null); }}
           onSuccess={() => { refetch(); onDataChange?.(); }}
@@ -1416,6 +1448,14 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
           installments={advancePayment.installments}
           open={!!advancePayment}
           onOpenChange={(open) => { if (!open) setAdvancePayment(null); }}
+          onSuccess={() => { refetch(); onDataChange?.(); }}
+        />
+      )}
+      {editingInstallment && (
+        <EditInstallmentDialog
+          installment={editingInstallment}
+          open={!!editingInstallment}
+          onOpenChange={(open) => { if (!open) setEditingInstallment(null); }}
           onSuccess={() => { refetch(); onDataChange?.(); }}
         />
       )}
