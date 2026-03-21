@@ -239,7 +239,7 @@ export function PartialPaymentDialog({
                 </p>
                 <p className="text-muted-foreground mt-1">
                   Pague somente {formatCurrency(interestOnLoanBalance)} de juros. 
-                  A parcela de {formatCurrency(installmentAmount)} será movida para o final do plano como parcela {lastInstallmentNumber + 1}.
+                  Uma nova parcela de {formatCurrency(installmentAmount)} será criada para o próximo mês.
                 </p>
               </div>
               <Button
