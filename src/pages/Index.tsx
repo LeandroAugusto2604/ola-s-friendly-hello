@@ -75,7 +75,7 @@ function DashboardContent() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="gradient-header text-white sticky top-0 z-10 shadow-soft">
-        <div className="container mx-auto px-4 py-4 lg:py-5">
+        <div className="container mx-auto px-4 pt-[env(safe-area-inset-top,0px)] py-4 lg:py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
