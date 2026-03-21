@@ -61,6 +61,7 @@ import { InterestPaymentDialog } from "@/components/InterestPaymentDialog";
 import { PartialPaymentDialog } from "@/components/PartialPaymentDialog";
 import { AdvancePaymentDialog } from "@/components/AdvancePaymentDialog";
 import { EditInstallmentDialog } from "@/components/EditInstallmentDialog";
+import { BulkEditInstallmentsDialog } from "@/components/BulkEditInstallmentsDialog";
 
 interface Installment {
   id: string;
@@ -157,6 +158,12 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
     totalPaid: number;
     interestRate: number;
     installments: any[];
+  } | null>(null);
+  const [bulkEditLoan, setBulkEditLoan] = useState<{
+    loanId: string;
+    originalAmount: number;
+    interestRate: number;
+    installments: { id: string; installment_number: number; amount: number; due_date: string; amount_paid: number; status: string; }[];
   } | null>(null);
 
   const { data: clients, isLoading, refetch } = useQuery({
@@ -1105,6 +1112,32 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                 </div>
                               </div>
 
+                              {/* Bulk edit button */}
+                              <div className="flex justify-end mb-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    setBulkEditLoan({
+                                      loanId: loan.id,
+                                      originalAmount: Number(loan.original_amount),
+                                      interestRate: Number(loan.interest_rate || 0),
+                                      installments: loan.installments.map(i => ({
+                                        id: i.id,
+                                        installment_number: i.installment_number,
+                                        amount: Number(i.amount),
+                                        due_date: i.due_date,
+                                        amount_paid: Number(i.amount_paid || 0),
+                                        status: i.status || (i.paid ? "liquidado" : "pendente"),
+                                      })),
+                                    })
+                                  }
+                                >
+                                  <Pencil className="h-3.5 w-3.5 mr-1" />
+                                  Editar Parcelas
+                                </Button>
+                              </div>
+
                               {/* Mobile-friendly table wrapper */}
                               <div className="overflow-x-auto -mx-2 sm:mx-0">
                                 <Table className="min-w-[700px]">
@@ -1475,6 +1508,17 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
           allInstallments={editingInstallment.allInstallments}
           open={!!editingInstallment}
           onOpenChange={(open) => { if (!open) setEditingInstallment(null); }}
+          onSuccess={() => { refetch(); onDataChange?.(); }}
+        />
+      )}
+      {bulkEditLoan && (
+        <BulkEditInstallmentsDialog
+          loanId={bulkEditLoan.loanId}
+          originalAmount={bulkEditLoan.originalAmount}
+          interestRate={bulkEditLoan.interestRate}
+          installments={bulkEditLoan.installments}
+          open={!!bulkEditLoan}
+          onOpenChange={(open) => { if (!open) setBulkEditLoan(null); }}
           onSuccess={() => { refetch(); onDataChange?.(); }}
         />
       )}
