@@ -145,6 +145,10 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
     due_date: string;
     amount_paid: number;
     status: string;
+    loanId: string;
+    originalAmount: number;
+    interestRate: number;
+    allInstallments: { id: string; installment_number: number; amount: number; due_date: string; amount_paid: number; status: string; }[];
   } | null>(null);
   const [addingLoanToClient, setAddingLoanToClient] = useState<{ id: string; name: string } | null>(null);
   const [advancePayment, setAdvancePayment] = useState<{
