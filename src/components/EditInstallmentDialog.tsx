@@ -72,10 +72,17 @@ export function EditInstallmentDialog({
   const maxAllowed = originalAmount - paidPrincipal;
 
   const newAmount = parseFloat(amount) || 0;
+  const increase = Math.max(newAmount - installment.amount, 0);
   const remainingAfterEdit = Math.max(originalAmount - paidPrincipal - newAmount, 0);
   const otherPendingInstallments = allInstallments
     .filter(i => i.status !== "liquidado" && i.id !== installment.id && i.installment_number > installment.installment_number)
     .sort((a, b) => a.installment_number - b.installment_number);
+
+  // Determine what happens to the next installment
+  const nextInstallment = otherPendingInstallments[0] || null;
+  const willDeleteNext = nextInstallment && increase > 0 && Math.abs(increase - nextInstallment.amount) < 0.01;
+  const willSubtractNext = nextInstallment && increase > 0 && !willDeleteNext && increase < nextInstallment.amount;
+  const nextNewAmount = willSubtractNext ? nextInstallment.amount - increase : 0;
 
   const handleSave = async () => {
     if (!newAmount || newAmount <= 0) {
@@ -85,6 +92,11 @@ export function EditInstallmentDialog({
 
     if (newAmount > maxAllowed) {
       toast({ title: "Erro", description: `Valor máximo permitido: ${formatCurrency(maxAllowed)}`, variant: "destructive" });
+      return;
+    }
+
+    if (increase > 0 && nextInstallment && increase > nextInstallment.amount) {
+      toast({ title: "Erro", description: `O acréscimo (${formatCurrency(increase)}) não pode ser maior que a próxima parcela (${formatCurrency(nextInstallment.amount)})`, variant: "destructive" });
       return;
     }
 
@@ -101,38 +113,48 @@ export function EditInstallmentDialog({
 
       if (error) throw error;
 
-      // 2. Redistribute remaining principal among subsequent pending installments
-      if (otherPendingInstallments.length > 0) {
-        const eachAmount = parseFloat((remainingAfterEdit / otherPendingInstallments.length).toFixed(2));
-        
-        // Adjust for rounding: last installment gets the remainder
-        for (let i = 0; i < otherPendingInstallments.length; i++) {
-          const inst = otherPendingInstallments[i];
-          let newInstAmount = eachAmount;
-          if (i === otherPendingInstallments.length - 1) {
-            // Last one gets the remainder to avoid rounding issues
-            newInstAmount = parseFloat((remainingAfterEdit - eachAmount * (otherPendingInstallments.length - 1)).toFixed(2));
+      // 2. Handle next installment based on the increase
+      if (increase > 0 && nextInstallment) {
+        if (willDeleteNext) {
+          // Increase equals next installment amount → delete it
+          const { error: deleteError } = await supabase
+            .from("installments")
+            .delete()
+            .eq("id", nextInstallment.id);
+          if (deleteError) throw deleteError;
+
+          // Update installments_count on the loan
+          const totalRemaining = allInstallments.length - 1;
+          await supabase
+            .from("loans")
+            .update({ installments_count: totalRemaining } as any)
+            .eq("id", loanId);
+
+          // Renumber subsequent installments
+          const toRenumber = otherPendingInstallments.slice(1);
+          for (const inst of toRenumber) {
+            await supabase
+              .from("installments")
+              .update({ installment_number: inst.installment_number - 1 } as any)
+              .eq("id", inst.id);
           }
-          
+        } else if (willSubtractNext) {
+          // Subtract the increase from next installment
           const { error: updateError } = await supabase
             .from("installments")
-            .update({ amount: newInstAmount } as any)
-            .eq("id", inst.id);
-
+            .update({ amount: parseFloat(nextNewAmount.toFixed(2)) } as any)
+            .eq("id", nextInstallment.id);
           if (updateError) throw updateError;
         }
-      } else if (remainingAfterEdit > 0 && otherPendingInstallments.length === 0) {
-        // No more pending installments but there's remaining principal - warn user
-        toast({
-          title: "Atenção",
-          description: `Ainda resta ${formatCurrency(remainingAfterEdit)} de principal sem parcela. Considere adicionar uma nova parcela.`,
-          variant: "destructive",
-        });
       }
 
       toast({
         title: "Parcela atualizada!",
-        description: `Parcela ${installment.installment_number} alterada para ${formatCurrency(newAmount)}. Demais parcelas recalculadas.`,
+        description: willDeleteNext
+          ? `Parcela ${installment.installment_number} alterada para ${formatCurrency(newAmount)}. Parcela ${nextInstallment!.installment_number} removida.`
+          : willSubtractNext
+          ? `Parcela ${installment.installment_number} alterada para ${formatCurrency(newAmount)}. Próxima parcela ajustada para ${formatCurrency(nextNewAmount)}.`
+          : `Parcela ${installment.installment_number} alterada para ${formatCurrency(newAmount)}.`,
       });
       onOpenChange(false);
       onSuccess();
