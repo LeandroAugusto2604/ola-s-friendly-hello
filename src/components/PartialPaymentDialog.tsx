@@ -23,6 +23,7 @@ interface PartialPaymentDialogProps {
   loanId: string;
   lastInstallmentNumber: number;
   lastDueDate: string;
+  currentInstallmentDueDate: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
