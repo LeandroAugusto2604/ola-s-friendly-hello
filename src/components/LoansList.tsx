@@ -1413,6 +1413,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
           loanId={partialPayment.loanId}
           lastInstallmentNumber={partialPayment.lastInstallmentNumber}
           lastDueDate={partialPayment.lastDueDate}
+          currentInstallmentDueDate={partialPayment.currentInstallmentDueDate}
           open={!!partialPayment}
           onOpenChange={(open) => { if (!open) setPartialPayment(null); }}
           onSuccess={() => { refetch(); onDataChange?.(); }}
