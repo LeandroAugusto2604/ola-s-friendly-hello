@@ -220,11 +220,17 @@ export function EditInstallmentDialog({
             </Popover>
           </div>
 
-          {newAmount > 0 && otherPendingInstallments.length > 0 && (
+          {increase > 0 && nextInstallment && (
             <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 text-sm text-blue-700 dark:text-blue-400 space-y-1">
               <p>📊 <strong>Simulação:</strong></p>
-              <p>Restante do principal: {formatCurrency(remainingAfterEdit)}</p>
-              <p>Dividido em {otherPendingInstallments.length} parcela(s): {formatCurrency(remainingAfterEdit / otherPendingInstallments.length)} cada</p>
+              <p>Acréscimo: {formatCurrency(increase)}</p>
+              {willDeleteNext ? (
+                <p>🗑️ Parcela {nextInstallment.installment_number} ({formatCurrency(nextInstallment.amount)}) será <strong>removida</strong></p>
+              ) : willSubtractNext ? (
+                <p>✏️ Parcela {nextInstallment.installment_number}: {formatCurrency(nextInstallment.amount)} → {formatCurrency(nextNewAmount)}</p>
+              ) : increase > nextInstallment.amount ? (
+                <p className="text-destructive">❌ Acréscimo maior que a próxima parcela</p>
+              ) : null}
             </div>
           )}
 
