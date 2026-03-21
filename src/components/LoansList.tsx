@@ -1451,6 +1451,14 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
           onSuccess={() => { refetch(); onDataChange?.(); }}
         />
       )}
+      {editingInstallment && (
+        <EditInstallmentDialog
+          installment={editingInstallment}
+          open={!!editingInstallment}
+          onOpenChange={(open) => { if (!open) setEditingInstallment(null); }}
+          onSuccess={() => { refetch(); onDataChange?.(); }}
+        />
+      )}
     </Card>
   );
 }
