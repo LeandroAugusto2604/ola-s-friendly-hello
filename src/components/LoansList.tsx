@@ -1469,6 +1469,10 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
       {editingInstallment && (
         <EditInstallmentDialog
           installment={editingInstallment}
+          loanId={editingInstallment.loanId}
+          originalAmount={editingInstallment.originalAmount}
+          interestRate={editingInstallment.interestRate}
+          allInstallments={editingInstallment.allInstallments}
           open={!!editingInstallment}
           onOpenChange={(open) => { if (!open) setEditingInstallment(null); }}
           onSuccess={() => { refetch(); onDataChange?.(); }}
