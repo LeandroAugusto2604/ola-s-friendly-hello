@@ -145,6 +145,10 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
     due_date: string;
     amount_paid: number;
     status: string;
+    loanId: string;
+    originalAmount: number;
+    interestRate: number;
+    allInstallments: { id: string; installment_number: number; amount: number; due_date: string; amount_paid: number; status: string; }[];
   } | null>(null);
   const [addingLoanToClient, setAddingLoanToClient] = useState<{ id: string; name: string } | null>(null);
   const [advancePayment, setAdvancePayment] = useState<{
@@ -1286,6 +1290,17 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                                   due_date: installment.due_date,
                                                   amount_paid: instPaid,
                                                   status: instStatus,
+                                                  loanId: loan.id,
+                                                  originalAmount: Number(loan.original_amount),
+                                                  interestRate: Number(loan.interest_rate || 0),
+                                                  allInstallments: loan.installments.map(i => ({
+                                                    id: i.id,
+                                                    installment_number: i.installment_number,
+                                                    amount: Number(i.amount),
+                                                    due_date: i.due_date,
+                                                    amount_paid: Number(i.amount_paid || 0),
+                                                    status: i.status || (i.paid ? "liquidado" : "pendente"),
+                                                  })),
                                                 })
                                               }
                                             >
@@ -1454,6 +1469,10 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
       {editingInstallment && (
         <EditInstallmentDialog
           installment={editingInstallment}
+          loanId={editingInstallment.loanId}
+          originalAmount={editingInstallment.originalAmount}
+          interestRate={editingInstallment.interestRate}
+          allInstallments={editingInstallment.allInstallments}
           open={!!editingInstallment}
           onOpenChange={(open) => { if (!open) setEditingInstallment(null); }}
           onSuccess={() => { refetch(); onDataChange?.(); }}
