@@ -1112,6 +1112,32 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                 </div>
                               </div>
 
+                              {/* Bulk edit button */}
+                              <div className="flex justify-end mb-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    setBulkEditLoan({
+                                      loanId: loan.id,
+                                      originalAmount: Number(loan.original_amount),
+                                      interestRate: Number(loan.interest_rate || 0),
+                                      installments: loan.installments.map(i => ({
+                                        id: i.id,
+                                        installment_number: i.installment_number,
+                                        amount: Number(i.amount),
+                                        due_date: i.due_date,
+                                        amount_paid: Number(i.amount_paid || 0),
+                                        status: i.status || (i.paid ? "liquidado" : "pendente"),
+                                      })),
+                                    })
+                                  }
+                                >
+                                  <Pencil className="h-3.5 w-3.5 mr-1" />
+                                  Editar Parcelas
+                                </Button>
+                              </div>
+
                               {/* Mobile-friendly table wrapper */}
                               <div className="overflow-x-auto -mx-2 sm:mx-0">
                                 <Table className="min-w-[700px]">
