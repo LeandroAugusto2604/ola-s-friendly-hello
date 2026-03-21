@@ -60,6 +60,7 @@ import { EditLoanDialog } from "@/components/EditLoanDialog";
 import { InterestPaymentDialog } from "@/components/InterestPaymentDialog";
 import { PartialPaymentDialog } from "@/components/PartialPaymentDialog";
 import { AdvancePaymentDialog } from "@/components/AdvancePaymentDialog";
+import { EditInstallmentDialog } from "@/components/EditInstallmentDialog";
 
 interface Installment {
   id: string;
