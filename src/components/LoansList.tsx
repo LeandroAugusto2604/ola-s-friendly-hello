@@ -1264,11 +1264,28 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                                   loanId: loan.id,
                                                   lastInstallmentNumber: loan.installments[loan.installments.length - 1].installment_number,
                                                   lastDueDate: loan.installments[loan.installments.length - 1].due_date,
+                                                  currentInstallmentDueDate: installment.due_date,
                                                 })
                                               }
                                               className="gradient-primary border-0 shadow-sm hover:opacity-90"
                                             >
                                               Pagar
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() =>
+                                                setEditingInstallment({
+                                                  id: installment.id,
+                                                  installment_number: installment.installment_number,
+                                                  amount: instAmount,
+                                                  due_date: installment.due_date,
+                                                  amount_paid: instPaid,
+                                                  status: instStatus,
+                                                })
+                                              }
+                                            >
+                                              <Pencil className="h-3 w-3" />
                                             </Button>
                                           )}
                                         </TableCell>
