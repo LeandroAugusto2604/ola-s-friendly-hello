@@ -83,7 +83,7 @@ function DashboardContent() {
               </div>
               <div>
                 <h1 className="text-xl lg:text-2xl font-bold tracking-tight">
-                  LoanManager
+                  Gerenciamento de Empréstimos
                 </h1>
                 <p className="text-sm text-white/70 hidden sm:block">
                   {user.email}
