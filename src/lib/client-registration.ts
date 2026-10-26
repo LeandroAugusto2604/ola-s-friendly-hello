@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CLIENT_REGISTRATION_URL } from "@/config/app";
 
 export const clientSchema = z.object({
   fullName: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(150),
@@ -15,8 +16,8 @@ export const formatCPF = (value: string) => value.replace(/\D/g, "").slice(0, 11
 export const formatPhone = (value: string) => value.replace(/\D/g, "").slice(0, 11)
   .replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2");
 export const isRegistrationToken = (token: string) => /^[a-f0-9]{64}$/.test(token);
-export function registrationUrl(origin: string, token: string) {
+export function registrationUrl(token: string) {
   if (!isRegistrationToken(token)) throw new Error("Link inválido");
   // Hash routes keep invitations working on VPS hosts without a catch-all rewrite.
-  return `${origin.replace(/\/$/, "")}/#/cadastro-cliente/${token}`;
+  return `${CLIENT_REGISTRATION_URL.replace(/\/$/, "")}/#/cadastro-cliente/${token}`;
 }

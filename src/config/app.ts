@@ -10,6 +10,9 @@
  */
 export const APP_URL = "http://emprestimo.dev-prod.cloud";
 
+/** Domínio público para os links de cadastro de clientes. */
+export const CLIENT_REGISTRATION_URL = "https://emprestimo.dev-prod.cloud";
+
 /**
  * URL do projeto Supabase
  * - Mantenha se estiver usando Supabase Cloud
