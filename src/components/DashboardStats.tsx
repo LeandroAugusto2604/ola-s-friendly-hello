@@ -9,7 +9,7 @@ import autoTable from "jspdf-autotable";
 import { Users, TrendingUp, Wallet, AlertCircle, ChevronRight, MessageCircle, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { buildOverdueWhatsAppMessage, formatBRL, formatOverdueDate } from "@/lib/overdue-message";
+import { buildOverdueWhatsAppMessage } from "@/lib/overdue-message";
 
 interface DashboardStatsProps {
   refreshKey: number;
@@ -23,7 +23,7 @@ export function DashboardStats({ refreshKey }: DashboardStatsProps) {
       const [clientsRes, loansRes, installmentsRes] = await Promise.all([
         supabase.from("clients").select("id", { count: "exact" }),
         supabase.from("loans").select("amount"),
-        supabase.from("installments").select("id, amount, paid, due_date, installment_number, loans!inner(client_id, clients!inner(id, full_name, phone))"),
+        supabase.from("installments").select("id, loan_id, amount, status, amount_paid, paid, due_date, installment_number, loans!inner(client_id, original_amount, interest_rate, clients!inner(id, full_name, phone))"),
       ]);
 
       const totalClients = clientsRes.count || 0;
@@ -39,17 +39,50 @@ export function DashboardStats({ refreshKey }: DashboardStatsProps) {
       
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+
+      // Walk each loan's schedule (same logic as the loan screen) to get the
+      // remaining principal and interest due for every installment.
+      const chargeByInstallment = new Map<string, { principal: number; interest: number }>();
+      const byLoan = new Map<string, any[]>();
+      for (const i of installments) {
+        const list = byLoan.get(i.loan_id) || [];
+        list.push(i);
+        byLoan.set(i.loan_id, list);
+      }
+      for (const list of byLoan.values()) {
+        list.sort((a: any, b: any) => a.installment_number - b.installment_number);
+        const rate = Number(list[0].loans?.interest_rate || 0) / 100;
+        let balance = Number(list[0].loans?.original_amount || 0);
+        let credit = 0;
+        for (const inst of list) {
+          const instAmount = Number(inst.amount);
+          const instPaid = Number(inst.amount_paid || 0);
+          const effectivePrincipal = Math.max(instAmount - credit, 0);
+          credit = Math.max(credit - instAmount, 0);
+          const interest = balance * rate;
+          chargeByInstallment.set(inst.id, { principal: effectivePrincipal, interest });
+          const overpayment = Math.max(instPaid - (effectivePrincipal + interest), 0);
+          credit += overpayment;
+          balance = Math.max(balance - effectivePrincipal - overpayment, 0);
+        }
+      }
+
       const overdueList = installments
         .filter((i) => !i.paid && new Date(i.due_date + "T00:00:00") < today)
-        .map((i: any) => ({
-          id: i.id as string,
-          number: i.installment_number as number,
-          amount: Number(i.amount),
-          dueDate: i.due_date as string,
-          clientId: i.loans?.clients?.id as string,
-          clientName: i.loans?.clients?.full_name as string,
-          phone: (i.loans?.clients?.phone || "") as string,
-        }))
+        .map((i: any) => {
+          const charge = chargeByInstallment.get(i.id) || { principal: Number(i.amount), interest: 0 };
+          return {
+            id: i.id as string,
+            number: i.installment_number as number,
+            amount: Number(i.amount),
+            principal: charge.principal,
+            interest: charge.interest,
+            dueDate: i.due_date as string,
+            clientId: i.loans?.clients?.id as string,
+            clientName: i.loans?.clients?.full_name as string,
+            phone: (i.loans?.clients?.phone || "") as string,
+          };
+        })
         .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
       const overdueCount = overdueList.length;
 
@@ -135,9 +168,15 @@ export function DashboardStats({ refreshKey }: DashboardStatsProps) {
     doc.text(`Emitido em: ${format(new Date(), "dd/MM/yyyy")}`, 14, 32);
     autoTable(doc, {
       startY: 38,
-      head: [["Parcela", "Vencimento", "Valor"]],
-      body: items.map((i) => [String(i.number), fmtDate(i.dueDate), formatCurrency(i.amount)]),
-      foot: [["", "Total", formatCurrency(items.reduce((s, i) => s + i.amount, 0))]],
+      head: [["Parcela", "Vencimento", "Parcela", "Juros", "Total"]],
+      body: items.map((i) => [
+        String(i.number),
+        fmtDate(i.dueDate),
+        formatCurrency(i.principal),
+        formatCurrency(i.interest),
+        formatCurrency(i.principal + i.interest),
+      ]),
+      foot: [["", "Total", "", "", formatCurrency(items.reduce((s, i) => s + i.principal + i.interest, 0))]],
       theme: "grid",
     });
     doc.save(`atraso-${clientName.replace(/\s+/g, "-").toLowerCase()}.pdf`);
@@ -146,9 +185,10 @@ export function DashboardStats({ refreshKey }: DashboardStatsProps) {
   const sendWhatsApp = (items: Overdue[]) => {
     const digits = items[0].phone.replace(/\D/g, "");
     const phone = digits.startsWith("55") ? digits : `55${digits}`;
-    const lines = items.map((i) => `• Parcela ${i.number} — venc. ${fmtDate(i.dueDate)} — ${formatCurrency(i.amount)}`);
-    const total = formatCurrency(items.reduce((s, i) => s + i.amount, 0));
-    const text = `Olá, ${items[0].clientName}! Identificamos parcela(s) em atraso:\n${lines.join("\n")}\nTotal: ${total}\nPor favor, regularize o pagamento.`;
+    const text = buildOverdueWhatsAppMessage(
+      items[0].clientName,
+      items.map((i) => ({ number: i.number, dueDate: i.dueDate, principal: i.principal, interest: i.interest }))
+    );
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank");
   };
 
@@ -227,7 +267,14 @@ export function DashboardStats({ refreshKey }: DashboardStatsProps) {
                     Parcela {item.number} • venceu em {fmtDate(item.dueDate)}
                   </p>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-sm font-semibold text-destructive">{formatCurrency(item.amount)}</span>
+                    <div className="text-right">
+                      <span className="text-sm font-semibold text-destructive">{formatCurrency(item.principal + item.interest)}</span>
+                      {item.interest > 0 && (
+                        <span className="block text-[10px] text-muted-foreground">
+                          {formatCurrency(item.principal)} + {formatCurrency(item.interest)} juros
+                        </span>
+                      )}
+                    </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </div>
                 </button>
