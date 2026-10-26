@@ -6,17 +6,9 @@ import { ClientRegistrationFields } from "@/components/ClientRegistrationFields"
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form } from "@/components/ui/form";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Search, UserPlus } from "lucide-react";
+import { Loader2, UserPlus } from "lucide-react";
 
 export type { ClientFormData } from "@/lib/client-registration";
 
@@ -39,23 +31,6 @@ export function ClientForm({ onSuccess }: ClientFormProps) {
       phone: "",
     },
   });
-
-  const formatCPF = (value: string) => {
-    const numbers = value.replace(/\D/g, "");
-    return numbers
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d{1,2})/, "$1-$2")
-      .replace(/(-\d{2})\d+?$/, "$1");
-  };
-
-  const formatPhone = (value: string) => {
-    const numbers = value.replace(/\D/g, "");
-    return numbers
-      .replace(/(\d{2})(\d)/, "($1) $2")
-      .replace(/(\d{5})(\d)/, "$1-$2")
-      .replace(/(-\d{4})\d+?$/, "$1");
-  };
 
   const searchByCPF = async () => {
     const cpf = form.getValues("cpf");
