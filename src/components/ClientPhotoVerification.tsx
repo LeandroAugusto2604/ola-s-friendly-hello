@@ -32,7 +32,7 @@ export function ClientPhotoVerification({ clientId, name, phone, path, legacy, o
       const { data, error } = await supabase.functions.invoke("delete-client-photo", { body: { clientId } });
       if (error || !data?.success) throw new Error();
       setLink(""); onChange();
-      toast({ title: "Foto excluída", description: data.cleanupPending ? "A verificação foi removida; a limpeza do arquivo será concluída depois." : "Cliente não verificado." });
+      toast({ title: "Foto excluída", description: data.cleanupPending ? "Cliente não verificado, mas não foi possível apagar o arquivo armazenado." : "Cliente não verificado." });
     } catch { toast({ title: "Não foi possível excluir a foto", variant: "destructive" }); }
     finally { setBusy(false); }
   }

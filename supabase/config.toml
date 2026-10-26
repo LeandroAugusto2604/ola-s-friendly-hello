@@ -2,3 +2,6 @@ project_id = "bpafoiivtwmcqgjvsgjs"
 
 [functions.register-client]
 verify_jwt = false
+
+[functions.delete-client-photo]
+verify_jwt = false
