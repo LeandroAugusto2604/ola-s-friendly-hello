@@ -50,12 +50,8 @@ export function ClientRegistrationLink({ onRegistered }: { onRegistered: (client
   }
   async function share() {
     if (!invite) return;
-    if (!navigator.share) {
-      window.open(`https://wa.me/?text=${encodeURIComponent(`Preencha seus dados para o cadastro: ${invite.url}`)}`, "_blank", "noopener,noreferrer");
-      return;
-    }
-    try { await navigator.share({ title: "Cadastro do Cliente", text: "Preencha seus dados para o cadastro.", url: invite.url }); }
-    catch (error) { if (!(error instanceof DOMException && error.name === "AbortError")) await copy(); }
+    const message = `Olá! Preencha seus dados para o cadastro: ${invite.url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   }
   return <div className="space-y-4 py-2">
     {completed && registered ? <>
@@ -65,7 +61,7 @@ export function ClientRegistrationLink({ onRegistered }: { onRegistered: (client
       <Label htmlFor="client-registration-link">Link de cadastro</Label>
       <Input id="client-registration-link" value={invite.url} readOnly onFocus={event => event.target.select()} />
       <p className="text-sm text-muted-foreground">Aguardando preenchimento · Válido até {new Date(invite.expires).toLocaleDateString("pt-BR")}</p>
-      <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={copy}><Copy className="mr-2 h-4 w-4" />Copiar link</Button><Button onClick={share}><Share2 className="mr-2 h-4 w-4" />Compartilhar</Button></div>
+      <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={copy}><Copy className="mr-2 h-4 w-4" />Copiar link</Button><Button onClick={share}><Share2 className="mr-2 h-4 w-4" />Enviar no WhatsApp</Button></div>
     </> : <Button className="w-full gap-2" onClick={createLink} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link className="h-4 w-4" />}Gerar link de cadastro</Button>}
   </div>;
 }
