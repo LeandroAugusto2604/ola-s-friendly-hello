@@ -1,3 +1,4 @@
+import { loanSummary } from "@/lib/loan-schedule";
 import { useState } from "react";
 import { LoanConfigForm } from "@/components/LoanConfigForm";
 import { v4 as uuidv4 } from "uuid";
@@ -427,7 +428,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
 
       const totalCount = loan.installments.length;
       const totalAmountPaid = loan.installments.reduce((sum, i) => sum + Number(i.amount_paid || 0), 0);
-      const saldoDevedor = Math.max(Number(loan.amount) - totalAmountPaid, 0);
+      const saldoDevedor = loanSummary(Number(loan.original_amount), Number(loan.interest_rate || 0), loan.installments).outstanding;
 
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
@@ -949,11 +950,12 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                   )}
                                 </div>
                                 {(() => {
-                                  const saldoDevedor = Math.max(Number(loan.amount) - totalPaid, 0);
                                   const rate = Number(loan.interest_rate || 0);
-                                  const jurosSobreSaldo = saldoDevedor * (rate / 100);
-                                  const parcelaMensal = Number(loan.original_amount) / loan.installments_count;
-                                  const parcelaMaisJuros = parcelaMensal + jurosSobreSaldo;
+                                  const summary = loanSummary(Number(loan.original_amount), rate, loan.installments);
+                                  const saldoDevedor = summary.outstanding;
+                                  const jurosSobreSaldo = summary.nextInterest;
+                                  const parcelaMensal = summary.nextPrincipal;
+                                  const parcelaMaisJuros = summary.nextTotal;
                                   return (
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-sm">
                                       <div className="rounded-lg bg-background p-2 sm:p-3 shadow-sm">

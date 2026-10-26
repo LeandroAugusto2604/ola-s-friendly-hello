@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, ArrowRight } from "lucide-react";
-import { addDays, format } from "date-fns";
+import { addMonths, format } from "date-fns";
 
 interface PartialPaymentDialogProps {
   installmentId: string;
@@ -120,7 +120,7 @@ export function PartialPaymentDialog({
 
       // 2. Create a new installment for the NEXT MONTH after the current one
       const currentDueDate = new Date(currentInstallmentDueDate + "T00:00:00");
-      const newDueDate = addDays(currentDueDate, 30);
+      const newDueDate = addMonths(currentDueDate, 1);
       const newInstallmentNumber = installmentNumber + 1;
 
       // 2a. Shift all installments after current one up by 1
@@ -129,21 +129,24 @@ export function PartialPaymentDialog({
         _after_number: installmentNumber,
       });
 
-      // If RPC doesn't exist, do it manually
-      if (shiftError) {
-        // Fetch all installments after current, shift them
+      // Shift later installments: number +1 (if RPC missing) and due date +1 month
+      {
         const { data: laterInstallments } = await supabase
           .from("installments")
-          .select("id, installment_number")
+          .select("id, installment_number, due_date")
           .eq("loan_id", loanId)
-          .gt("installment_number", installmentNumber)
+          .gt("installment_number", shiftError ? installmentNumber : newInstallmentNumber)
           .order("installment_number", { ascending: false });
 
         if (laterInstallments) {
-          for (const inst of laterInstallments) {
+          for (const inst of laterInstallments as any[]) {
+            const nextDue = addMonths(new Date(inst.due_date + "T00:00:00"), 1);
             await supabase
               .from("installments")
-              .update({ installment_number: inst.installment_number + 1 } as any)
+              .update({
+                ...(shiftError ? { installment_number: inst.installment_number + 1 } : {}),
+                due_date: format(nextDue, "yyyy-MM-dd"),
+              } as any)
               .eq("id", inst.id);
           }
         }
