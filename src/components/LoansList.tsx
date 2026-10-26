@@ -62,6 +62,7 @@ import { PartialPaymentDialog } from "@/components/PartialPaymentDialog";
 import { AdvancePaymentDialog } from "@/components/AdvancePaymentDialog";
 import { EditInstallmentDialog } from "@/components/EditInstallmentDialog";
 import { BulkEditInstallmentsDialog } from "@/components/BulkEditInstallmentsDialog";
+import { ClientIdentityPhoto } from "@/components/ClientIdentityPhoto";
 
 interface Installment {
   id: string;
@@ -110,6 +111,7 @@ interface Client {
   rg: string;
   address: string;
   phone: string | null;
+  identity_photo_path: string | null;
   loans: Loan[];
 }
 
@@ -814,6 +816,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                         </div>
                       </div>
 
+                      {client.identity_photo_path && client.loans.length === 0 && <ClientIdentityPhoto path={client.identity_photo_path} name={client.full_name} />}
                       {client.loans.length === 0 ? (
                         <p className="text-sm text-muted-foreground">
                           Nenhum empréstimo cadastrado.
@@ -912,6 +915,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                 </div>
                               </div>
 
+                              {client.identity_photo_path && <ClientIdentityPhoto path={client.identity_photo_path} name={client.full_name} />}
                               {/* Financial Summary Panel */}
                               <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-3 sm:p-5 space-y-2 sm:space-y-3">
                                 <div className="flex items-center justify-between">

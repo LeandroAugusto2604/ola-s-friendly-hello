@@ -1,7 +1,7 @@
 # Cadastro por link
-- [ ] Incluir captura de foto com RG e envio junto aos dados.
-- [ ] Guardar a foto com acesso restrito e exibir no empréstimo do cliente.
-- [ ] Testar validações de foto e os caminhos públicos disponíveis.
+- [x] Incluir captura de foto com RG e envio junto aos dados.
+- [x] Guardar a foto com acesso restrito e exibir no empréstimo do cliente.
+- [x] Testar validações de foto e os caminhos públicos disponíveis.
 - [x] Criar convite seguro e cadastro vinculado ao responsável.
 - [x] Manter cadastro manual e adicionar compartilhamento e formulário público com os mesmos campos.
 - [x] Atualizar a lista após envio e verificar validações e links inválidos no navegador.
