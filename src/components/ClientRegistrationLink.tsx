@@ -37,7 +37,7 @@ export function ClientRegistrationLink({ onRegistered }: { onRegistered: (client
       const { data, error } = await supabase.rpc("create_client_registration_invite");
       if (error) throw error;
       if (!data || typeof data !== "object" || Array.isArray(data) || typeof data.token !== "string" || typeof data.invitation_id !== "string" || typeof data.expires_at !== "string") throw new Error("Não foi possível gerar o link.");
-      setInvite({ id: data.invitation_id, url: registrationUrl(window.location.origin, data.token), expires: data.expires_at });
+      setInvite({ id: data.invitation_id, url: registrationUrl(data.token), expires: data.expires_at });
       setCompleted(false); setRegistered(null);
     } catch (error) {
       toast({ title: "Não foi possível gerar o link", description: error instanceof Error ? error.message : "Tente novamente.", variant: "destructive" });

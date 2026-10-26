@@ -18,13 +18,14 @@ describe("cadastro manual e por link", () => {
     expect(formatPhone("11999990000")).toBe("(11) 99999-0000");
     expect(clientSchema.safeParse({ ...client, phone: "123" }).success).toBe(false);
   });
-  it("cria o link no mesmo site e mantém o convite no fragmento para funcionar na VPS", () => {
+  it("usa sempre o domínio da VPS e mantém o convite no fragmento", () => {
     const token = "a".repeat(64);
-    expect(registrationUrl("https://emprestimo.dev-prod.cloud", token)).toBe(`https://emprestimo.dev-prod.cloud/#/cadastro-cliente/${token}`);
-    expect(new URL(registrationUrl("https://emprestimo.dev-prod.cloud", token)).pathname).toBe("/");
+    expect(registrationUrl(token)).toBe(`https://emprestimo.dev-prod.cloud/#/cadastro-cliente/${token}`);
+    expect(new URL(registrationUrl(token)).origin).toBe("https://emprestimo.dev-prod.cloud");
+    expect(new URL(registrationUrl(token)).pathname).toBe("/");
   });
   it("recusa tokens inválidos", () => {
     expect(isRegistrationToken("invalido")).toBe(false);
-    expect(() => registrationUrl("https://emprestimo.dev-prod.cloud", "invalido")).toThrow();
+    expect(() => registrationUrl("invalido")).toThrow();
   });
 });
