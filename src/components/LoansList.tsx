@@ -63,7 +63,7 @@ import { PartialPaymentDialog } from "@/components/PartialPaymentDialog";
 import { AdvancePaymentDialog } from "@/components/AdvancePaymentDialog";
 import { EditInstallmentDialog } from "@/components/EditInstallmentDialog";
 import { BulkEditInstallmentsDialog } from "@/components/BulkEditInstallmentsDialog";
-import { ClientIdentityPhoto } from "@/components/ClientIdentityPhoto";
+import { ClientPhotoVerification } from "@/components/ClientPhotoVerification";
 
 interface Installment {
   id: string;
@@ -149,7 +149,6 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
     return () => window.removeEventListener("focus-installment", handler);
   }, []);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [sendingVerification, setSendingVerification] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [interestPaymentLoan, setInterestPaymentLoan] = useState<{ loanId: string; remaining: number } | null>(null);
@@ -255,96 +254,6 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
       return clientsWithLoans;
     },
   });
-
-  const handleSendVerification = async (loanId: string, clientPhone: string | null, clientName: string) => {
-    if (!clientPhone) {
-      toast({
-        title: "Telefone não cadastrado",
-        description: "Cadastre o telefone do cliente para enviar a verificação.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Generate token and build URLs BEFORE any async call
-    const token = uuidv4();
-    const verificationLink = `${APP_URL}/verify/${token}`;
-    const cleanPhone = clientPhone.replace(/\D/g, "");
-    const whatsappPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
-    const message = encodeURIComponent(
-      `Olá ${clientName}! Para confirmar seu empréstimo, acesse o link abaixo e tire uma foto segurando seu RG:\n\n${verificationLink}`
-    );
-    const whatsappUrl = `https://wa.me/${whatsappPhone}?text=${message}`;
-
-    // Open WhatsApp IMMEDIATELY (synchronous, preserves user gesture)
-    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-
-    setSendingVerification(loanId);
-
-    try {
-      // Save verification record in the background
-      const { error } = await supabase
-        .from("identity_verifications")
-        .insert({
-          loan_id: loanId,
-          token: token,
-          status: "pending",
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Link enviado!",
-        description: "O WhatsApp foi aberto com a mensagem pronta.",
-      });
-
-      refetch();
-    } catch (error: any) {
-      console.error("Error creating verification:", error);
-      toast({
-        title: "Erro ao salvar verificação",
-        description: error?.message || "Erro desconhecido",
-        variant: "destructive",
-      });
-    } finally {
-      setSendingVerification(null);
-    }
-  };
-
-  const copyVerificationLink = (token: string) => {
-    const link = `${APP_URL}/verify/${token}`;
-    navigator.clipboard.writeText(link);
-    toast({
-      title: "Link copiado!",
-      description: "O link foi copiado para a área de transferência.",
-    });
-  };
-
-  const resendVerification = async (loanId: string, existingToken: string, clientPhone: string | null, clientName: string) => {
-    if (!clientPhone) {
-      toast({
-        title: "Telefone não cadastrado",
-        description: "Cadastre o telefone do cliente para reenviar.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const verificationLink = `${APP_URL}/verify/${existingToken}`;
-    const cleanPhone = clientPhone.replace(/\D/g, "");
-    const whatsappPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
-    const message = encodeURIComponent(
-      `Olá ${clientName}! Para confirmar seu empréstimo, acesse o link abaixo e tire uma foto segurando seu RG:\n\n${verificationLink}`
-    );
-
-    const whatsappUrl = `https://wa.me/${whatsappPhone}?text=${message}`;
-    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-
-    toast({
-      title: "WhatsApp aberto!",
-      description: "Reenvie a mensagem para o cliente.",
-    });
-  };
 
   const handlePayInstallment = async (installmentId: string, installmentAmount: number) => {
     const { error } = await supabase
@@ -842,7 +751,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                         </div>
                       </div>
 
-                      {client.identity_photo_path && client.loans.length === 0 && <ClientIdentityPhoto path={client.identity_photo_path} name={client.full_name} />}
+                      {client.loans.length === 0 && <ClientPhotoVerification clientId={client.id} path={client.identity_photo_path} name={client.full_name} phone={client.phone} onChange={() => { refetch(); onDataChange?.(); }} />}
                       {client.loans.length === 0 ? (
                         <p className="text-sm text-muted-foreground">
                           Nenhum empréstimo cadastrado.
@@ -941,7 +850,6 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                 </div>
                               </div>
 
-                              {client.identity_photo_path && <ClientIdentityPhoto path={client.identity_photo_path} name={client.full_name} />}
                               {/* Financial Summary Panel */}
                               <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-3 sm:p-5 space-y-2 sm:space-y-3">
                                 <div className="flex items-center justify-between">
@@ -1040,105 +948,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                 </div>
                               )}
 
-                              {/* Identity Verification Section */}
-                              <div className="border border-border/50 rounded-lg p-4 bg-background">
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-sm font-medium">Verificação:</span>
-                                    {!loan.identity_verification ? (
-                                      <Badge variant="outline" className="border-muted-foreground/30">
-                                        Não solicitada
-                                      </Badge>
-                                    ) : loan.identity_verification.status === "completed" ? (
-                                      <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-0">
-                                        <CheckCircle2 className="mr-1 h-3 w-3" />
-                                        Verificado
-                                      </Badge>
-                                    ) : (
-                                      <Badge className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-0">
-                                        <Clock className="mr-1 h-3 w-3" />
-                                        Aguardando
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    {!loan.identity_verification ? (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="text-emerald-600 border-emerald-600/30 hover:bg-emerald-500/10 w-full sm:w-auto"
-                                        onClick={() => handleSendVerification(loan.id, client.phone, client.full_name)}
-                                        disabled={sendingVerification === loan.id}
-                                      >
-                                        {sendingVerification === loan.id ? (
-                                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                                        ) : (
-                                          <MessageCircle className="h-4 w-4 mr-1" />
-                                        )}
-                                        Enviar WhatsApp
-                                      </Button>
-                                    ) : loan.identity_verification.status === "pending" ? (
-                                      <>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          className="flex-1 sm:flex-none"
-                                          onClick={() => copyVerificationLink(loan.identity_verification!.token)}
-                                        >
-                                          <Copy className="h-4 w-4 mr-1" />
-                                          Copiar
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          className="flex-1 sm:flex-none"
-                                          onClick={() => resendVerification(
-                                            loan.id,
-                                            loan.identity_verification!.token,
-                                            client.phone,
-                                            client.full_name
-                                          )}
-                                        >
-                                          <Send className="h-4 w-4 mr-1" />
-                                          Reenviar
-                                        </Button>
-                                      </>
-                                    ) : loan.identity_verification.photo_url ? (
-                                      <Dialog>
-                                        <DialogTrigger asChild>
-                                          <Button size="sm" variant="outline" className="w-full sm:w-auto">
-                                            <Eye className="h-4 w-4 mr-1" />
-                                            Ver foto
-                                          </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="max-w-2xl">
-                                          <DialogHeader>
-                                            <DialogTitle>Foto de Verificação - {client.full_name}</DialogTitle>
-                                          </DialogHeader>
-                                          <div className="mt-4">
-                                            <img
-                                              src={loan.identity_verification.photo_url}
-                                              alt="Foto de verificação"
-                                              className="w-full rounded-lg"
-                                            />
-                                            <p className="text-sm text-muted-foreground mt-3 text-center">
-                                              Verificado em{" "}
-                                              {loan.identity_verification.verified_at
-                                                ? format(
-                                                    new Date(loan.identity_verification.verified_at),
-                                                    "dd/MM/yyyy 'às' HH:mm",
-                                                    { locale: ptBR }
-                                                  )
-                                                : "Data não disponível"}
-                                            </p>
-                                          </div>
-                                        </DialogContent>
-                                      </Dialog>
-                                    ) : null}
-                                  </div>
-                                </div>
-                              </div>
+                              <ClientPhotoVerification clientId={client.id} path={client.identity_photo_path} name={client.full_name} phone={client.phone} legacy={loan.identity_verification} onChange={() => { refetch(); onDataChange?.(); }} />
 
                               {/* Bulk edit button */}
                               <div className="flex justify-end mb-2">
