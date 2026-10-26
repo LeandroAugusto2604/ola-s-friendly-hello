@@ -23,8 +23,8 @@ export default defineConfig(({ mode }) => ({
         navigateFallbackDenylist: [/^\/~oauth/],
       },
       manifest: {
-        name: "Sistema de Gestão de Empréstimos",
-        short_name: "LoanManager",
+        name: "Gerenciamento de Empréstimos",
+        short_name: "Empréstimos",
         description: "Controle seus clientes, empréstimos e parcelas",
         theme_color: "#1e40af",
         background_color: "#f8fafc",
