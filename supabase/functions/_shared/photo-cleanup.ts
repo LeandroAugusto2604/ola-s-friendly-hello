@@ -9,7 +9,7 @@ export async function cleanupPhotos(admin: SupabaseClient, previous: unknown): P
     if (error) success = false;
   }
   const base = `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/identity-photos/`;
-  const paths = Array.isArray(old_urls) ? old_urls.filter((url): url is string => typeof url === "string" && url.startsWith(base)).map(url => decodeURIComponent(url.slice(base.length).split("?")[0])).filter(path => !path.includes("..")) : [];
+  const paths = Array.isArray(old_urls) ? old_urls.filter((url): url is string => typeof url === "string" && url.startsWith(base)).map(url => decodeURIComponent(url.slice(base.length).split("?")[0])).filter(path => /^[a-f0-9-]{36}_\d+\.jpg$/.test(path)) : [];
   if (paths.length) {
     const { error } = await admin.storage.from("identity-photos").remove(paths);
     if (error) success = false;
