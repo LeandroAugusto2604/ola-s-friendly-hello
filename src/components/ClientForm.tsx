@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { clientSchema, ClientFormData } from "@/lib/client-registration";
+import { ClientRegistrationFields } from "@/components/ClientRegistrationFields";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -17,15 +18,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Search, UserPlus } from "lucide-react";
 
-const clientSchema = z.object({
-  fullName: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
-  address: z.string().min(5, "Endereço deve ter pelo menos 5 caracteres"),
-  rg: z.string().min(5, "RG inválido"),
-  cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$|^\d{11}$/, "CPF inválido"),
-  phone: z.string().min(10, "Celular inválido").max(15, "Celular inválido"),
-});
-
-export type ClientFormData = z.infer<typeof clientSchema>;
+export type { ClientFormData } from "@/lib/client-registration";
 
 interface ClientFormProps {
   onSuccess: () => void;
@@ -148,65 +141,7 @@ export function ClientForm({ onSuccess }: ClientFormProps) {
           💡 Cadastre o cliente primeiro. Depois, adicione empréstimos diretamente no perfil dele.
         </div>
 
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-          <FormField control={form.control} name="fullName" render={({ field }) => (
-            <FormItem className="sm:col-span-2">
-              <FormLabel>Nome Completo</FormLabel>
-              <FormControl><Input placeholder="João da Silva" {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-
-          <FormField control={form.control} name="address" render={({ field }) => (
-            <FormItem className="sm:col-span-2">
-              <FormLabel>Endereço</FormLabel>
-              <FormControl><Input placeholder="Rua, número, bairro, cidade" {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-
-          <FormField control={form.control} name="phone" render={({ field }) => (
-            <FormItem>
-              <FormLabel>Celular</FormLabel>
-              <FormControl>
-                <Input placeholder="(00) 00000-0000" {...field} onChange={(e) => field.onChange(formatPhone(e.target.value))} maxLength={15} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-
-          <FormField control={form.control} name="rg" render={({ field }) => (
-            <FormItem>
-              <FormLabel>RG</FormLabel>
-              <FormControl><Input placeholder="00.000.000-0" {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-
-          <FormField
-            control={form.control}
-            name="cpf"
-            render={({ field }) => (
-              <FormItem className="sm:col-span-2">
-                <FormLabel>CPF</FormLabel>
-                <div className="flex gap-2">
-                  <FormControl>
-                    <Input
-                      placeholder="000.000.000-00"
-                      {...field}
-                      onChange={(e) => field.onChange(formatCPF(e.target.value))}
-                      maxLength={14}
-                    />
-                  </FormControl>
-                  <Button type="button" variant="outline" size="icon" onClick={searchByCPF} disabled={isSearching}>
-                    {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                  </Button>
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <ClientRegistrationFields form={form} onSearch={searchByCPF} isSearching={isSearching} />
 
         <Button type="submit" className="w-full h-12 gradient-primary border-0 shadow-soft hover:opacity-90 transition-smooth text-base gap-2" disabled={isLoading}>
           {isLoading ? (

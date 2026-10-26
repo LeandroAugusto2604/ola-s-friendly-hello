@@ -49,6 +49,20 @@ function DashboardContent() {
     }
   }, [navigate]);
 
+  useEffect(() => {
+    if (!user) return;
+    const refreshOnReturn = () => { if (document.visibilityState === "visible") handleDataChange(); };
+    window.addEventListener("focus", refreshOnReturn);
+    document.addEventListener("visibilitychange", refreshOnReturn);
+    // Keep remotely submitted clients visible even if a realtime connection drops.
+    const timer = window.setInterval(() => { if (document.visibilityState === "visible") handleDataChange(); }, 15000);
+    return () => {
+      window.removeEventListener("focus", refreshOnReturn);
+      document.removeEventListener("visibilitychange", refreshOnReturn);
+      window.clearInterval(timer);
+    };
+  }, [user, handleDataChange]);
+
   // Subscribe to real-time updates from all tables
   useRealtimeSubscription({
     tables: ["clients", "loans", "installments"],
