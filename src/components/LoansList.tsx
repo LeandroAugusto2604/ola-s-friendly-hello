@@ -1,11 +1,9 @@
 import { loanSummary } from "@/lib/loan-schedule";
 import { useEffect, useState } from "react";
 import { LoanConfigForm } from "@/components/LoanConfigForm";
-import { v4 as uuidv4 } from "uuid";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-import { APP_URL } from "@/config/app";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,7 +53,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { format, differenceInCalendarDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle2, Clock, FileDown, FileText, Pencil, Plus, Search, Trash2, User, MessageCircle, Copy, Eye, Send, Loader2 } from "lucide-react";
+import { CheckCircle2, Clock, FileDown, FileText, Pencil, Plus, Search, Trash2, User } from "lucide-react";
 import { EditClientDialog } from "@/components/EditClientDialog";
 import { EditLoanDialog } from "@/components/EditLoanDialog";
 import { InterestPaymentDialog } from "@/components/InterestPaymentDialog";
