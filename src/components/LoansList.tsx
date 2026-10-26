@@ -125,6 +125,29 @@ interface LoansListProps {
 
 export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [openClients, setOpenClients] = useState<string[]>([]);
+  const [highlightedInstallment, setHighlightedInstallment] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { clientId, installmentId } = (e as CustomEvent).detail || {};
+      if (!clientId) return;
+      setSearchQuery("");
+      setStatusFilter("all");
+      setOpenClients((prev) => (prev.includes(clientId) ? prev : [...prev, clientId]));
+      setHighlightedInstallment(installmentId);
+      let tries = 0;
+      const scroll = () => {
+        const el = document.getElementById(`installment-${installmentId}`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+        else if (tries++ < 20) setTimeout(scroll, 100);
+      };
+      setTimeout(scroll, 150);
+      setTimeout(() => setHighlightedInstallment(null), 4000);
+    };
+    window.addEventListener("focus-installment", handler);
+    return () => window.removeEventListener("focus-installment", handler);
+  }, []);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sendingVerification, setSendingVerification] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -704,7 +727,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
               : "Nenhum cliente cadastrado ainda."}
           </p>
         ) : (
-          <Accordion type="multiple" className="space-y-3">
+          <Accordion type="multiple" value={openClients} onValueChange={setOpenClients} className="space-y-3">
             {filteredClients.map((client) => {
               const clientStatus = getClientStatus(client);
               
@@ -1201,7 +1224,7 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
                                     const juros = balanceBefore * (rate / 100);
 
                                     return (
-                                      <TableRow key={installment.id}>
+                                      <TableRow key={installment.id} id={`installment-${installment.id}`} className={highlightedInstallment === installment.id ? "bg-destructive/10 ring-2 ring-destructive/40 transition-colors" : undefined}>
                                         <TableCell>
                                           {installment.installment_number}/
                                           {loan.installments_count}
