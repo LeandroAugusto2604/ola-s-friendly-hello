@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, ArrowRight } from "lucide-react";
-import { addDays, format } from "date-fns";
+import { addMonths, format } from "date-fns";
 
 interface PartialPaymentDialogProps {
   installmentId: string;
