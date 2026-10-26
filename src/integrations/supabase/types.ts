@@ -62,6 +62,7 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          identity_photo_path: string | null
           phone: string | null
           rg: string
           updated_at: string
@@ -73,6 +74,7 @@ export type Database = {
           created_at?: string
           full_name: string
           id?: string
+          identity_photo_path?: string | null
           phone?: string | null
           rg: string
           updated_at?: string
@@ -84,6 +86,7 @@ export type Database = {
           created_at?: string
           full_name?: string
           id?: string
+          identity_photo_path?: string | null
           phone?: string | null
           rg?: string
           updated_at?: string
@@ -311,6 +314,18 @@ export type Database = {
       client_registration_invite_status: {
         Args: { p_token: string }
         Returns: string
+      }
+      complete_client_registration_with_photo: {
+        Args: {
+          p_address: string
+          p_cpf: string
+          p_full_name: string
+          p_phone: string
+          p_photo_path: string
+          p_rg: string
+          p_token: string
+        }
+        Returns: undefined
       }
       create_client_registration_invite: { Args: never; Returns: Json }
       has_role: {
