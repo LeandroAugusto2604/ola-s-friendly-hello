@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_photo_invites: {
+        Row: {
+          client_id: string
+          completed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          token_hash: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token_hash: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token_hash?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_photo_invites_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_registration_invites: {
         Row: {
           client_id: string | null
@@ -311,9 +352,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      clear_client_identity_photo: {
+        Args: { p_client_id: string }
+        Returns: Json
+      }
+      client_photo_invite_status: { Args: { p_token: string }; Returns: string }
       client_registration_invite_status: {
         Args: { p_token: string }
         Returns: string
+      }
+      complete_client_photo: {
+        Args: { p_photo_path: string; p_token: string }
+        Returns: Json
       }
       complete_client_registration_with_photo: {
         Args: {
@@ -326,6 +376,10 @@ export type Database = {
           p_token: string
         }
         Returns: undefined
+      }
+      create_client_photo_invite: {
+        Args: { p_client_id: string }
+        Returns: Json
       }
       create_client_registration_invite: { Args: never; Returns: Json }
       has_role: {
