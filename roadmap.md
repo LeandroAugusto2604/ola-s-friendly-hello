@@ -1,5 +1,5 @@
 # Cadastro por link
-- [ ] Corrigir reinício do formulário de empréstimo durante atualizações automáticas e testar a preservação dos valores.
+- [x] Corrigir reinício do formulário de empréstimo durante atualizações automáticas e testar a preservação dos valores (9 testes passaram; verificação autenticada indisponível no Supabase externo).
 - [x] Incluir captura de foto com RG e envio junto aos dados.
 - [x] Guardar a foto com acesso restrito e exibir no empréstimo do cliente.
 - [x] Testar validações de foto e os caminhos públicos disponíveis.
