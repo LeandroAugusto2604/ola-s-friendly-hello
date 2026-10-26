@@ -120,7 +120,7 @@ export function PartialPaymentDialog({
 
       // 2. Create a new installment for the NEXT MONTH after the current one
       const currentDueDate = new Date(currentInstallmentDueDate + "T00:00:00");
-      const newDueDate = addDays(currentDueDate, 30);
+      const newDueDate = addMonths(currentDueDate, 1);
       const newInstallmentNumber = installmentNumber + 1;
 
       // 2a. Shift all installments after current one up by 1
