@@ -9,6 +9,7 @@ import autoTable from "jspdf-autotable";
 import { Users, TrendingUp, Wallet, AlertCircle, ChevronRight, MessageCircle, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { buildOverdueWhatsAppMessage, formatBRL, formatOverdueDate } from "@/lib/overdue-message";
 
 interface DashboardStatsProps {
   refreshKey: number;
