@@ -4,7 +4,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { format } from "date-fns";
-import { Users, TrendingUp, Wallet, AlertCircle, ChevronRight } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { Users, TrendingUp, Wallet, AlertCircle, ChevronRight, MessageCircle, FileDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface DashboardStatsProps {
@@ -19,7 +22,7 @@ export function DashboardStats({ refreshKey }: DashboardStatsProps) {
       const [clientsRes, loansRes, installmentsRes] = await Promise.all([
         supabase.from("clients").select("id", { count: "exact" }),
         supabase.from("loans").select("amount"),
-        supabase.from("installments").select("id, amount, paid, due_date, installment_number, loans!inner(client_id, clients!inner(id, full_name))"),
+        supabase.from("installments").select("id, amount, paid, due_date, installment_number, loans!inner(client_id, clients!inner(id, full_name, phone))"),
       ]);
 
       const totalClients = clientsRes.count || 0;
@@ -44,6 +47,7 @@ export function DashboardStats({ refreshKey }: DashboardStatsProps) {
           dueDate: i.due_date as string,
           clientId: i.loans?.clients?.id as string,
           clientName: i.loans?.clients?.full_name as string,
+          phone: (i.loans?.clients?.phone || "") as string,
         }))
         .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
       const overdueCount = overdueList.length;
@@ -117,6 +121,43 @@ export function DashboardStats({ refreshKey }: DashboardStatsProps) {
     },
   ];
 
+  type Overdue = NonNullable<typeof stats>["overdueList"][number];
+  const fmtDate = (d: string) => format(new Date(d + "T00:00:00"), "dd/MM/yyyy");
+
+  const downloadPdf = (items: Overdue[]) => {
+    const doc = new jsPDF();
+    const clientName = items[0].clientName;
+    doc.setFontSize(14);
+    doc.text("Parcelas em atraso", 14, 18);
+    doc.setFontSize(10);
+    doc.text(`Cliente: ${clientName}`, 14, 26);
+    doc.text(`Emitido em: ${format(new Date(), "dd/MM/yyyy")}`, 14, 32);
+    autoTable(doc, {
+      startY: 38,
+      head: [["Parcela", "Vencimento", "Valor"]],
+      body: items.map((i) => [String(i.number), fmtDate(i.dueDate), formatCurrency(i.amount)]),
+      foot: [["", "Total", formatCurrency(items.reduce((s, i) => s + i.amount, 0))]],
+      theme: "grid",
+    });
+    doc.save(`atraso-${clientName.replace(/\s+/g, "-").toLowerCase()}.pdf`);
+  };
+
+  const sendWhatsApp = (items: Overdue[]) => {
+    const digits = items[0].phone.replace(/\D/g, "");
+    const phone = digits.startsWith("55") ? digits : `55${digits}`;
+    const lines = items.map((i) => `• Parcela ${i.number} — venc. ${fmtDate(i.dueDate)} — ${formatCurrency(i.amount)}`);
+    const total = formatCurrency(items.reduce((s, i) => s + i.amount, 0));
+    const text = `Olá, ${items[0].clientName}! Identificamos parcela(s) em atraso:\n${lines.join("\n")}\nTotal: ${total}\nPor favor, regularize o pagamento.`;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
+  const overdueByClient = Object.values(
+    (stats?.overdueList || []).reduce((acc, i) => {
+      (acc[i.clientId] ||= []).push(i);
+      return acc;
+    }, {} as Record<string, Overdue[]>)
+  );
+
   const goTo = (clientId: string, installmentId: string) => {
     setOverdueOpen(false);
     window.dispatchEvent(new CustomEvent("focus-installment", { detail: { clientId, installmentId } }));
@@ -158,27 +199,40 @@ export function DashboardStats({ refreshKey }: DashboardStatsProps) {
       <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Parcelas em atraso</DialogTitle>
-          <DialogDescription>Clique em uma parcela para ir até ela.</DialogDescription>
+          <DialogDescription>Clique em "Cobrar" para enviar no WhatsApp do cliente, ou em uma parcela para ir até ela.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-2">
-          {(stats?.overdueList || []).map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => goTo(item.clientId, item.id)}
-              className="w-full flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 text-left hover:bg-muted transition-smooth"
-            >
-              <div className="min-w-0">
-                <p className="font-medium text-sm truncate">{item.clientName}</p>
-                <p className="text-xs text-muted-foreground">
-                  Parcela {item.number} • venceu em {format(new Date(item.dueDate + "T00:00:00"), "dd/MM/yyyy")}
-                </p>
+        <div className="space-y-3">
+          {overdueByClient.map((items) => (
+            <div key={items[0].clientId} className="rounded-lg border border-border bg-card p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold text-sm truncate">{items[0].clientName}</p>
+                <div className="flex gap-1 shrink-0">
+                  <Button size="sm" variant="outline" className="gap-1 h-8" onClick={() => downloadPdf(items)}>
+                    <FileDown className="h-4 w-4" /> PDF
+                  </Button>
+                  <Button size="sm" className="gap-1 h-8" disabled={!items[0].phone} onClick={() => sendWhatsApp(items)}>
+                    <MessageCircle className="h-4 w-4" /> Cobrar
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-sm font-semibold text-destructive">{formatCurrency(item.amount)}</span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </div>
-            </button>
+              {items.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => goTo(item.clientId, item.id)}
+                  className="w-full flex items-center justify-between gap-3 rounded-md bg-muted/50 px-3 py-2 text-left hover:bg-muted transition-smooth"
+                >
+                  <p className="text-xs text-muted-foreground">
+                    Parcela {item.number} • venceu em {fmtDate(item.dueDate)}
+                  </p>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-sm font-semibold text-destructive">{formatCurrency(item.amount)}</span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </button>
+              ))}
+              {!items[0].phone && <p className="text-xs text-muted-foreground">Cliente sem celular cadastrado.</p>}
+            </div>
           ))}
         </div>
       </DialogContent>
