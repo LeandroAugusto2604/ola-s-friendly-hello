@@ -5,7 +5,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 import { APP_URL } from "@/config/app";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -170,6 +170,8 @@ export function LoansList({ refreshKey, onDataChange }: LoansListProps) {
 
   const { data: clients, isLoading, refetch } = useQuery({
     queryKey: ["clients-with-loans", refreshKey],
+    // Background refreshes must not replace the list and unmount open forms.
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const { data: clientsData, error: clientsError } = await supabase
         .from("clients")
