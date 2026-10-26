@@ -1,5 +1,5 @@
 import { loanSummary } from "@/lib/loan-schedule";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LoanConfigForm } from "@/components/LoanConfigForm";
 import { v4 as uuidv4 } from "uuid";
 import jsPDF from "jspdf";
