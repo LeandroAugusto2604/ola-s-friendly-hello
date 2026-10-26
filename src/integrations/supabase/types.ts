@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_registration_invites: {
+        Row: {
+          client_id: string | null
+          completed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          token_hash: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token_hash: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token_hash?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_registration_invites_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string
@@ -267,12 +308,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      client_registration_invite_status: {
+        Args: { p_token: string }
+        Returns: string
+      }
+      create_client_registration_invite: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      submit_client_registration: {
+        Args: {
+          p_address: string
+          p_cpf: string
+          p_full_name: string
+          p_phone: string
+          p_rg: string
+          p_token: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
