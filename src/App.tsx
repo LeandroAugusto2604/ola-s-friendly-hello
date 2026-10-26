@@ -8,11 +8,13 @@ import NotFound from "./pages/NotFound";
 import VerifyIdentity from "./pages/VerifyIdentity";
 import ResetPassword from "./pages/ResetPassword";
 import ClientRegistration from "./pages/ClientRegistration";
+import ClientPhoto from "./pages/ClientPhoto";
 
 const queryClient = new QueryClient();
 
 const App = () => {
   const hashMatch = window.location.hash.match(/^#\/cadastro-cliente\/([^/?#]+)$/);
+  const photoMatch = window.location.hash.match(/^#\/foto-cliente\/([^/?#]+)$/);
   return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -20,7 +22,8 @@ const App = () => {
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={hashMatch ? <ClientRegistration invitationToken={hashMatch[1]} /> : <Index />} />
+          <Route path="/" element={photoMatch ? <ClientPhoto invitationToken={photoMatch[1]} /> : hashMatch ? <ClientRegistration invitationToken={hashMatch[1]} /> : <Index />} />
+          <Route path="/foto-cliente/:token" element={<ClientPhoto />} />
           <Route path="/cadastro-cliente/:token" element={<ClientRegistration />} />
           <Route path="/verify/:token" element={<VerifyIdentity />} />
           <Route path="/reset-password" element={<ResetPassword />} />

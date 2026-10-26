@@ -9,7 +9,7 @@ import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Banknote, CheckCircle2, Loader2, Send } from "lucide-react";
 import { RegistrationPhotoCapture } from "@/components/RegistrationPhotoCapture";
-import { validateRegistrationPhoto } from "@/lib/registration-photo";
+import { validateOptionalRegistrationPhoto } from "@/lib/client-photo";
 
 export default function ClientRegistration({ invitationToken }: { invitationToken?: string }) {
   const params = useParams();
@@ -28,14 +28,14 @@ export default function ClientRegistration({ invitationToken }: { invitationToke
     return () => { active = false; };
   }, [token]);
   async function submit(data: ClientFormData) {
-    const photoError = validateRegistrationPhoto(photo);
-    if (photoError || !photo) { setError(photoError || "Envie sua foto com RG."); return; }
+    const photoError = validateOptionalRegistrationPhoto(photo);
+    if (photoError) { setError(photoError); return; }
     setSending(true); setError("");
     try {
       const body = new FormData();
       body.append("token", token);
       Object.entries(data).forEach(([key, value]) => body.append(key, value));
-      body.append("photo", photo);
+      if (photo) body.append("photo", photo);
       const { data: result, error: submitError } = await supabase.functions.invoke("register-client", { body });
       if (submitError) {
         let message = "Não foi possível enviar o cadastro. Tente novamente.";
