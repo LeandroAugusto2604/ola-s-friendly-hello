@@ -50,12 +50,8 @@ export function ClientRegistrationLink({ onRegistered }: { onRegistered: (client
   }
   async function share() {
     if (!invite) return;
-    if (!navigator.share) {
-      window.open(`https://wa.me/?text=${encodeURIComponent(`Preencha seus dados para o cadastro: ${invite.url}`)}`, "_blank", "noopener,noreferrer");
-      return;
-    }
-    try { await navigator.share({ title: "Cadastro do Cliente", text: "Preencha seus dados para o cadastro.", url: invite.url }); }
-    catch (error) { if (!(error instanceof DOMException && error.name === "AbortError")) await copy(); }
+    const message = `Olá! Preencha seus dados para o cadastro: ${invite.url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   }
   return <div className="space-y-4 py-2">
     {completed && registered ? <>
