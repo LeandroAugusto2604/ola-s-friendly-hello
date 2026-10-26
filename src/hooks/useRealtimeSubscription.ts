@@ -13,10 +13,11 @@ export function useRealtimeSubscription({
   tables,
   onDataChange,
 }: UseRealtimeSubscriptionOptions) {
+  const tableKey = tables.join(",");
   useEffect(() => {
-    const channels = tables.map((table) => {
+    const channels = tableKey.split(",").map((table) => {
       return supabase
-        .channel(`${table}-changes`)
+        .channel(`${table}-changes-${crypto.randomUUID()}`)
         .on(
           "postgres_changes" as any,
           {
@@ -37,5 +38,5 @@ export function useRealtimeSubscription({
         supabase.removeChannel(channel);
       });
     };
-  }, [tables, onDataChange]);
+  }, [tableKey, onDataChange]);
 }

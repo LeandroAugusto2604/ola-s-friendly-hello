@@ -1,38 +1,25 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { clientSchema, ClientFormData } from "@/lib/client-registration";
+import { ClientRegistrationFields } from "@/components/ClientRegistrationFields";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form } from "@/components/ui/form";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Search, UserPlus, ArrowRight } from "lucide-react";
+import { Loader2, ArrowRight } from "lucide-react";
+import { ClientRegistrationLink } from "@/components/ClientRegistrationLink";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoanConfigForm } from "@/components/LoanConfigForm";
 
-const clientSchema = z.object({
-  fullName: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
-  address: z.string().min(5, "Endereço deve ter pelo menos 5 caracteres"),
-  rg: z.string().min(5, "RG inválido"),
-  cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$|^\d{11}$/, "CPF inválido"),
-  phone: z.string().min(10, "Celular inválido").max(15, "Celular inválido"),
-});
-
-type ClientFormData = z.infer<typeof clientSchema>;
 
 interface NewClientLoanFlowProps {
   onSuccess: () => void;
 }
 
 export function NewClientLoanFlow({ onSuccess }: NewClientLoanFlowProps) {
+  const [mode, setMode] = useState("manual");
   const [step, setStep] = useState<"client" | "loan">("client");
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -49,23 +36,6 @@ export function NewClientLoanFlow({ onSuccess }: NewClientLoanFlowProps) {
       phone: "",
     },
   });
-
-  const formatCPF = (value: string) => {
-    const numbers = value.replace(/\D/g, "");
-    return numbers
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d{1,2})/, "$1-$2")
-      .replace(/(-\d{2})\d+?$/, "$1");
-  };
-
-  const formatPhone = (value: string) => {
-    const numbers = value.replace(/\D/g, "");
-    return numbers
-      .replace(/(\d{2})(\d)/, "($1) $2")
-      .replace(/(\d{5})(\d)/, "$1-$2")
-      .replace(/(-\d{4})\d+?$/, "$1");
-  };
 
   const searchByCPF = async () => {
     const cpf = form.getValues("cpf");
@@ -170,71 +140,20 @@ export function NewClientLoanFlow({ onSuccess }: NewClientLoanFlowProps) {
   }
 
   return (
-    <Form {...form}>
+    <div className="space-y-4">
+      <Tabs value={mode} onValueChange={setMode}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="manual">Cadastro manual</TabsTrigger>
+          <TabsTrigger value="link">Enviar link</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      {mode === "link" ? <ClientRegistrationLink onRegistered={client => { setRegisteredClient(client); setStep("loan"); }} /> : <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmitClient)} className="space-y-4">
         <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
           💡 Cadastre o cliente e em seguida configure o empréstimo.
         </div>
 
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-          <FormField control={form.control} name="fullName" render={({ field }) => (
-            <FormItem className="sm:col-span-2">
-              <FormLabel>Nome Completo</FormLabel>
-              <FormControl><Input placeholder="João da Silva" {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-
-          <FormField control={form.control} name="address" render={({ field }) => (
-            <FormItem className="sm:col-span-2">
-              <FormLabel>Endereço</FormLabel>
-              <FormControl><Input placeholder="Rua, número, bairro, cidade" {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-
-          <FormField control={form.control} name="phone" render={({ field }) => (
-            <FormItem>
-              <FormLabel>Celular</FormLabel>
-              <FormControl>
-                <Input placeholder="(00) 00000-0000" {...field} onChange={(e) => field.onChange(formatPhone(e.target.value))} maxLength={15} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-
-          <FormField control={form.control} name="rg" render={({ field }) => (
-            <FormItem>
-              <FormLabel>RG</FormLabel>
-              <FormControl><Input placeholder="00.000.000-0" {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-
-          <FormField
-            control={form.control}
-            name="cpf"
-            render={({ field }) => (
-              <FormItem className="sm:col-span-2">
-                <FormLabel>CPF</FormLabel>
-                <div className="flex gap-2">
-                  <FormControl>
-                    <Input
-                      placeholder="000.000.000-00"
-                      {...field}
-                      onChange={(e) => field.onChange(formatCPF(e.target.value))}
-                      maxLength={14}
-                    />
-                  </FormControl>
-                  <Button type="button" variant="outline" size="icon" onClick={searchByCPF} disabled={isSearching}>
-                    {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                  </Button>
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <ClientRegistrationFields form={form} onSearch={searchByCPF} isSearching={isSearching} />
 
         <Button type="submit" className="w-full h-12 gradient-primary border-0 shadow-soft hover:opacity-90 transition-smooth text-base gap-2" disabled={isLoading}>
           {isLoading ? (
@@ -250,6 +169,7 @@ export function NewClientLoanFlow({ onSuccess }: NewClientLoanFlowProps) {
           )}
         </Button>
       </form>
-    </Form>
+    </Form>}
+    </div>
   );
 }

@@ -1,0 +1,15 @@
+CREATE SCHEMA IF NOT EXISTS private;
+REVOKE ALL ON SCHEMA private FROM PUBLIC;
+GRANT USAGE ON SCHEMA private TO anon, authenticated;
+ALTER FUNCTION public.create_client_registration_invite() SET SCHEMA private;
+ALTER FUNCTION public.client_registration_invite_status(text) SET SCHEMA private;
+ALTER FUNCTION public.submit_client_registration(text, text, text, text, text, text) SET SCHEMA private;
+CREATE FUNCTION public.create_client_registration_invite() RETURNS jsonb LANGUAGE sql SECURITY INVOKER SET search_path = '' AS $$ SELECT private.create_client_registration_invite(); $$;
+REVOKE ALL ON FUNCTION public.create_client_registration_invite() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.create_client_registration_invite() TO authenticated;
+CREATE FUNCTION public.client_registration_invite_status(p_token text) RETURNS text LANGUAGE sql SECURITY INVOKER SET search_path = '' AS $$ SELECT private.client_registration_invite_status(p_token); $$;
+REVOKE ALL ON FUNCTION public.client_registration_invite_status(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.client_registration_invite_status(text) TO anon, authenticated;
+CREATE FUNCTION public.submit_client_registration(p_token text, p_full_name text, p_address text, p_phone text, p_rg text, p_cpf text) RETURNS void LANGUAGE sql SECURITY INVOKER SET search_path = '' AS $$ SELECT private.submit_client_registration(p_token, p_full_name, p_address, p_phone, p_rg, p_cpf); $$;
+REVOKE ALL ON FUNCTION public.submit_client_registration(text, text, text, text, text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.submit_client_registration(text, text, text, text, text, text) TO anon, authenticated;
