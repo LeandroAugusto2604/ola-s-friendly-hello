@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.delete-client-photo]
 verify_jwt = false
+
+[functions.push-notifications]
+verify_jwt = false
+
+[functions.daily-overdue-push]
+verify_jwt = false

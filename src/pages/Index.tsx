@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Banknote, LogOut, Plus, Radio, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { PushNotificationSettings } from "@/components/PushNotificationSettings";
 
 function DashboardContent() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -130,6 +131,7 @@ function DashboardContent() {
       <main className="container mx-auto px-4 py-6 lg:py-8">
         <div className="space-y-6 lg:space-y-8 animate-fade-in">
           {/* Overdue Alert */}
+          <div className="flex justify-end"><PushNotificationSettings /></div>
           <OverdueAlert refreshKey={refreshKey} />
 
           {/* Stats */}
