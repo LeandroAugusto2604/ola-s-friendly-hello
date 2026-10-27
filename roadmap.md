@@ -1,4 +1,5 @@
 # Cadastro por link
+- [ ] Notificações diárias de parcelas atrasadas no Android e iPhone — verificar envio compatível com Supabase externo e usar a parcela simulada para teste quando configurado.
 - [x] Integrar status da foto do cadastro, cadastro sem foto, exclusão e link seguro apenas para nova foto; 14 testes locais e 3 testes da função passaram; página de link inválido conferida.
 - [x] Corrigir reinício do formulário de empréstimo durante atualizações automáticas e testar a preservação dos valores (9 testes passaram; verificação autenticada indisponível no Supabase externo).
 - [x] Incluir captura de foto com RG e envio junto aos dados.
