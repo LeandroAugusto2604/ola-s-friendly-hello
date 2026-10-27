@@ -1,0 +1,1 @@
+CREATE POLICY "Push delivery service only" ON public.push_daily_deliveries FOR ALL TO service_role USING (true) WITH CHECK (true);

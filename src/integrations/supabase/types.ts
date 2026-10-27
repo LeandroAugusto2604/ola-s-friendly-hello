@@ -329,6 +329,68 @@ export type Database = {
         }
         Relationships: []
       }
+      push_daily_deliveries: {
+        Row: {
+          created_at: string
+          delivery_date: string
+          status: string
+          subscription_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_date: string
+          status?: string
+          subscription_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delivery_date?: string
+          status?: string
+          subscription_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_daily_deliveries_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "push_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -352,6 +414,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_daily_overdue_push: {
+        Args: never
+        Returns: {
+          auth: string
+          endpoint: string
+          overdue_count: number
+          p256dh: string
+          subscription_id: string
+        }[]
+      }
       clear_client_identity_photo: {
         Args: { p_client_id: string }
         Returns: Json
