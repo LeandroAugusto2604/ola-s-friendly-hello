@@ -1,0 +1,2 @@
+DROP EXTENSION pg_net;
+CREATE EXTENSION pg_net WITH SCHEMA extensions;
