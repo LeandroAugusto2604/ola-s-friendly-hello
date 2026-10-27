@@ -16,7 +16,7 @@ interface DashboardStatsProps {
 }
 
 export function DashboardStats({ refreshKey }: DashboardStatsProps) {
-  const [overdueOpen, setOverdueOpen] = useState(false);
+  const [overdueOpen, setOverdueOpen] = useState(() => new URLSearchParams(window.location.search).get("overdue") === "1");
   const { data: stats, isLoading } = useQuery({
     queryKey: ["dashboard-stats", refreshKey],
     queryFn: async () => {

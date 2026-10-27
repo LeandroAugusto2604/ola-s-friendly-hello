@@ -41,7 +41,7 @@ Deno.serve(async req => {
     await server.subscribe({ endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } }).pushTextMessage(JSON.stringify(count ? overduePushPayload(count) : { title: "Notificações ativadas", body: "Seu celular está pronto para os avisos diários às 9h.", path: "/", tag: "push-test" }), {});
     return json({ success: true, overdueCount: count || 0 });
   } catch (error) {
-    const status = typeof error === "object" && error !== null && "status" in error ? error.status : null;
+    const status = typeof error === "object" && error !== null && "response" in error && error.response instanceof Response ? error.response.status : null;
     if (status === 404 || status === 410) return json({ error: "A autorização deste celular expirou. Desative e ative novamente." }, 410);
     return json({ error: "Não foi possível enviar o aviso. Tente novamente." }, 502);
   }
