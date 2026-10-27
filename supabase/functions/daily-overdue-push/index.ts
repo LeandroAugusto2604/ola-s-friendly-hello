@@ -25,7 +25,7 @@ Deno.serve(async req => {
         await server.subscribe({ endpoint: item.endpoint, keys: { p256dh: item.p256dh, auth: item.auth } }).pushTextMessage(JSON.stringify(overduePushPayload(Number(item.overdue_count))), {});
         status = "sent";
       } catch (error) {
-        const code = typeof error === "object" && error !== null && "status" in error ? error.status : null;
+        const code = typeof error === "object" && error !== null && "response" in error && error.response instanceof Response ? error.response.status : null;
         if (code === 404 || code === 410) { await admin.from("push_subscriptions").delete().eq("id", item.subscription_id); continue; }
       }
       await admin.from("push_daily_deliveries").update({ status }).eq("subscription_id", item.subscription_id).eq("status", "claimed");
