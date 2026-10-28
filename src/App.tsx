@@ -28,7 +28,7 @@ const App = () => {
           <Route path="/verify/:token" element={<VerifyIdentity />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
+          <Route path="*" element={window.location.hash.includes("type=recovery") ? <ResetPassword /> : <NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
